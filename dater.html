@@ -694,8 +694,12 @@
     const signoutButtonEl = document.getElementById("signout-button");
     const localTestingConfig = config.localTesting || {};
     const pageParams = new URLSearchParams(window.location.search);
+    const isLocalHost =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname === "";
     const isDummySessionEnabled =
-      localTestingConfig.enableDummySession === true ||
+      (localTestingConfig.enableDummySession === true && isLocalHost) ||
       pageParams.get("local") === "1";
 
     function isConfigured() {
