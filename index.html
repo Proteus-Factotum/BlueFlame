@@ -1,211 +1,188 @@
 <!DOCTYPE html>
-<html lang="da">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Robin Hansen</title>
+  <title>BlueFlame</title>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #0f0f0f;
-      --text: #f2f2f0;
-      --muted: #b4b4af;
-      --soft: #8d8d87;
-      --underline: rgba(242, 242, 240, 0.5);
+      --bg: #080808;
+      --text: #f4f1ea;
+      --muted: #b3afa7;
+      --soft: #8a867f;
+      --line: rgba(255, 255, 255, 0.12);
+      --surface: rgba(255, 255, 255, 0.03);
     }
 
     * {
       box-sizing: border-box;
     }
 
-    html {
-      font-size: 16px;
-    }
-
     body {
       margin: 0;
       min-height: 100vh;
-      padding: 56px 22px 64px;
-      background: var(--bg);
+      background:
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.08), transparent 24%),
+        linear-gradient(180deg, #151515 0%, #070707 100%);
       color: var(--text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      line-height: 1.75;
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
+      font-family: Georgia, "Times New Roman", serif;
     }
 
     main {
       width: 100%;
-      max-width: 560px;
+      max-width: 1100px;
       margin: 0 auto;
+      padding: 28px 20px 60px;
+      display: grid;
+      gap: 18px;
+    }
+
+    section {
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background: rgba(18, 18, 18, 0.94);
+      padding: 24px;
     }
 
     h1,
     h2,
-    p,
-    ul {
+    p {
       margin: 0;
+    }
+
+    h1 {
+      max-width: 720px;
+      font-size: clamp(2.4rem, 6vw, 5.6rem);
+      line-height: 0.92;
+      letter-spacing: -0.06em;
+      font-weight: 600;
+    }
+
+    h2 {
+      font-size: 1.45rem;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      font-weight: 600;
+    }
+
+    .eyebrow,
+    .copy,
+    .meta,
+    a {
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .eyebrow {
+      color: var(--soft);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
     }
 
     .hero {
       display: grid;
-      gap: 18px;
-      justify-items: center;
-      text-align: center;
+      gap: 14px;
+      min-height: 280px;
+      align-content: end;
     }
 
-    .photo {
-      width: 112px;
-      height: 112px;
-      border-radius: 50%;
-      object-fit: cover;
-      display: block;
-    }
-
-    h1 {
-      font-size: clamp(2.1rem, 5vw, 2.85rem);
-      line-height: 1.02;
-      font-weight: 650;
-      letter-spacing: -0.04em;
-    }
-
-    .tagline {
-      margin-top: 8px;
-      color: var(--text);
-      font-size: clamp(1.2rem, 3vw, 1.45rem);
-      line-height: 1.25;
-      letter-spacing: -0.02em;
-      white-space: nowrap;
-    }
-
-    section {
-      margin-top: 56px;
-    }
-
-    h2 {
-      display: none;
-    }
-
-    p {
+    .copy,
+    .meta {
+      max-width: 700px;
       color: var(--muted);
+      line-height: 1.6;
       font-size: 1rem;
     }
 
-    ul {
-      padding-left: 18px;
-      color: var(--muted);
-      line-height: 1.6;
+    .grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    li + li {
+    .card {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      background: var(--surface);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
       margin-top: 8px;
     }
 
-    .cta {
-      margin-top: 64px;
-    }
-
-    .cta p + p {
-      margin-top: 22px;
-    }
-
-    .button {
+    a {
       display: inline-block;
+      width: fit-content;
       color: var(--text);
       text-decoration: none;
-      font-weight: 500;
-      letter-spacing: 0.01em;
       padding-bottom: 4px;
-      border-bottom: 1px solid var(--underline);
+      border-bottom: 1px solid rgba(244, 241, 234, 0.5);
     }
 
-    .button:focus-visible,
-    .button:hover {
+    a:hover,
+    a:focus-visible {
       border-bottom-color: var(--text);
       outline: none;
     }
 
-    @media (max-width: 480px) {
-      body {
-        padding: 36px 18px 44px;
+    @media (max-width: 780px) {
+      main {
+        padding: 18px 14px 48px;
       }
 
       section {
-        margin-top: 44px;
+        padding: 18px;
+        border-radius: 18px;
       }
 
-      .hero {
-        gap: 16px;
-      }
-
-      .photo {
-        width: 96px;
-        height: 96px;
+      .grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
 </head>
 <body>
   <main>
-    <header class="hero">
-      <img class="photo" src="your-photo.jpg" alt="Portraet af Robin Hansen">
-      <div>
-        <h1>Robin Hansen</h1>
-        <p class="tagline">Du fangede min opmærksomhed</p>
-      </div>
-    </header>
-
-    <section aria-labelledby="intro-heading">
-      <h2 id="intro-heading">Intro</h2>
-      <p>
-        Jeg foretrækker simple, direkte møder.
-        <br>
-        Hvis du er nysgerrig, så kig lidt rundt.
-        <br>
-        Hvis ikke, er det også helt fint.
+    <section class="hero">
+      <p class="eyebrow">BlueFlame</p>
+      <h1>The private scheduling layer behind personal dating sites.</h1>
+      <p class="copy">
+        BlueFlame is on its way to becoming a real landing page. Right now the focus is the private `/dater` area,
+        where people log in and manage their availability while the personal sites pull booking logic from one central place.
       </p>
     </section>
 
-    <section aria-labelledby="details-heading">
-      <h2 id="details-heading">Et par ting</h2>
-      <ul>
-        <li>Jeg bor i Nørresundby</li>
-        <li>Bygger systemer og værktøjer</li>
-        <li>De fleste dage går med træning og fokuseret arbejde</li>
-        <li>Kan godt li' struktur</li>
-        <li>Ret nørdet anlagt</li>
-        <li>Kobler gerne af med anime eller dans</li>
-        <li>Værdsætter selvstændighed og retning</li>
-      </ul>
-    </section>
+    <div class="grid">
+      <section class="card">
+        <p class="eyebrow">Private App</p>
+        <h2>Dater</h2>
+        <p class="meta">
+          Log in, set exact bookable days, and keep track of what is upcoming or already held. This is the first real building block
+          toward the full private experience at `blueflame.live/dater`.
+        </p>
+        <div class="actions">
+          <a href="dater.html">Open Dater</a>
+        </div>
+      </section>
 
-    <section aria-labelledby="intent-heading">
-      <h2 id="intent-heading">Intention</h2>
-      <p>
-        Jeg er mest til noget, der føles rigtigt. Ikke det halve.
-      </p>
-    </section>
-
-    <section aria-labelledby="meeting-heading">
-      <h2 id="meeting-heading">Moede</h2>
-      <p>
-        Hvis vi mødes, er det bare te eller en gåtur.
-      </p>
-    </section>
-
-    <section class="cta" aria-labelledby="cta-heading">
-      <h2 id="cta-heading">Naeste</h2>
-      <p>
-        Skriv hvis du har lyst.
-        <br>
-        +45 71 83 21 17
-      </p>
-      <p>
-        Eller find et tidspunkt her.
-        <br>
-        <a class="button" href="booking.html?slug=robin-hansen">booking</a>
-      </p>
-    </section>
+      <section class="card">
+        <p class="eyebrow">Prototype</p>
+        <h2>Public booking</h2>
+        <p class="meta">
+          The current booking surfaces are temporary test interfaces while we settle the API and data flow for the sites
+          we control ourselves.
+        </p>
+        <div class="actions">
+          <a href="booking.html?slug=robin-hansen">Booking prototype</a>
+          <a href="embed.html?slug=robin-hansen">Embed prototype</a>
+        </div>
+      </section>
+    </div>
   </main>
 </body>
 </html>

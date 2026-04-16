@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="da">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -206,16 +206,16 @@
 <body>
   <main>
     <section class="intro" aria-labelledby="booking-heading">
-      <a class="back" href="index.html">Tilbage</a>
-      <h1 id="booking-heading">Find et tidspunkt</h1>
-      <p class="lede">Vælg det tidspunkt, der passer. Der er kun de muligheder, du kan se her.</p>
+      <a class="back" href="index.html">Back</a>
+      <h1 id="booking-heading">Choose a time</h1>
+      <p class="lede">Pick the date that works for you. Only the visible options are still available.</p>
     </section>
 
     <section aria-labelledby="options-heading">
-      <h2 id="options-heading" class="hidden">Muligheder</h2>
+      <h2 id="options-heading" class="hidden">Options</h2>
       <div id="setup-message" class="empty hidden"></div>
-      <div id="options" class="options" role="radiogroup" aria-label="Ledige tidspunkter"></div>
-      <p id="empty-message" class="empty hidden">Der er ingen ledige tider lige nu.</p>
+      <div id="options" class="options" role="radiogroup" aria-label="Available booking times"></div>
+      <p id="empty-message" class="empty hidden">There are no open times right now.</p>
       <p id="options-status" class="status options-status" aria-live="polite"></p>
     </section>
 
@@ -223,17 +223,17 @@
       <h2 id="form-heading" class="hidden">Booking</h2>
       <form id="booking-form">
         <div class="field">
-          <label class="field-label" for="name">Navn</label>
+          <label class="field-label" for="name">Name</label>
           <input id="name" name="name" type="text" autocomplete="name" required>
         </div>
 
         <div class="field">
-          <label class="field-label" for="contact">Telefon eller email</label>
+          <label class="field-label" for="contact">Phone or email</label>
           <input id="contact" name="contact" type="text" autocomplete="email" required>
         </div>
 
-        <button id="submit-button" type="submit" disabled>Book tidspunkt</button>
-        <p class="hint">Når et tidspunkt er taget, forsvinder det fra listen.</p>
+        <button id="submit-button" type="submit" disabled>Book time</button>
+        <p class="hint">Once a time is taken, it disappears from the list.</p>
         <p id="status" class="status" aria-live="polite"></p>
       </form>
     </section>
@@ -276,24 +276,21 @@
       optionsStatusEl.className = isSuccess ? "status options-status success" : "status options-status";
     }
 
-    function formatSlot(isoString) {
-      const formatter = new Intl.DateTimeFormat("da-DK", {
+    function formatSlot(slot) {
+      const date = new Date(slot.available_on + "T12:00:00Z");
+      const dayText = new Intl.DateTimeFormat("en-US", {
         weekday: "long",
         day: "numeric",
-        month: "long",
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "Europe/Copenhagen"
-      });
+        month: "long"
+      }).format(date);
 
-      const output = formatter.format(new Date(isoString));
-      return output.charAt(0).toUpperCase() + output.slice(1).replace(",", " kl.");
+      return dayText + " at " + String(slot.start_time).slice(0, 5);
     }
 
     function renderOptions(slots) {
       optionsEl.innerHTML = "";
       emptyMessageEl.classList.toggle("hidden", slots.length !== 0);
-      setOptionsStatus(slots.length ? slots.length + " tider ledige." : "", false);
+      setOptionsStatus(slots.length ? slots.length + " open times." : "", false);
 
       for (const slot of slots) {
         const labelEl = document.createElement("label");
@@ -302,16 +299,16 @@
         const inputEl = document.createElement("input");
         inputEl.type = "radio";
         inputEl.name = "slot";
-        inputEl.value = slot.starts_at;
+        inputEl.value = slot.available_on + "|" + slot.start_time;
         inputEl.addEventListener("change", () => {
-          selectedSlot = slot.starts_at;
+          selectedSlot = slot;
           submitButtonEl.disabled = false;
           setStatus("", false);
         });
 
         const textEl = document.createElement("span");
         textEl.className = "option-text";
-        textEl.textContent = formatSlot(slot.starts_at);
+        textEl.textContent = formatSlot(slot);
 
         labelEl.appendChild(inputEl);
         labelEl.appendChild(textEl);
@@ -323,21 +320,21 @@
       const slug = getSlug();
 
       if (!slug) {
-        setupMessageEl.textContent = "Ingen booking-side er valgt endnu.";
+        setupMessageEl.textContent = "No booking page has been selected yet.";
         setupMessageEl.classList.remove("hidden");
         setOptionsStatus("", false);
         return;
       }
 
       if (!isConfigured()) {
-        setupMessageEl.textContent = "Udfyld booking-config.js med dit Supabase-projekt for at hente tider.";
+        setupMessageEl.textContent = "Fill in booking-config.js with your Supabase project to load times.";
         setupMessageEl.classList.remove("hidden");
         setOptionsStatus("", false);
         return;
       }
 
       setupMessageEl.classList.add("hidden");
-      setOptionsStatus("Henter ledige tider...", false);
+      setOptionsStatus("Loading open times...", false);
 
       const response = await fetch(config.supabaseUrl + "/rest/v1/rpc/get_public_booking_options", {
         method: "POST",
@@ -350,19 +347,19 @@
       });
 
       if (!response.ok) {
-        throw new Error("Kunne ikke hente tider.");
+        throw new Error("Could not load times.");
       }
 
       const slots = await response.json();
       renderOptions(slots);
-      setOptionsStatus(slots.length ? slots.length + " tider ledige." : "", false);
+      setOptionsStatus(slots.length ? slots.length + " open times." : "", false);
     }
 
     async function submitBooking(event) {
       event.preventDefault();
 
       if (!selectedSlot) {
-        setStatus("Vælg et tidspunkt først.", false);
+        setStatus("Choose a time first.", false);
         return;
       }
 
@@ -372,12 +369,12 @@
       const contact = String(formData.get("contact") || "").trim();
 
       if (!name || !contact) {
-        setStatus("Udfyld navn og kontakt.", false);
+        setStatus("Fill in both name and contact details.", false);
         return;
       }
 
       submitButtonEl.disabled = true;
-      setStatus("Gemmer booking...", false);
+      setStatus("Saving booking...", false);
 
       try {
         const response = await fetch(config.supabaseUrl + "/rest/v1/rpc/create_booking", {
@@ -389,7 +386,8 @@
           },
           body: JSON.stringify({
             target_slug: slug,
-            requested_starts_at: selectedSlot,
+            requested_date: selectedSlot.available_on,
+            requested_time: selectedSlot.start_time,
             guest_name: name,
             guest_contact: contact
           })
@@ -397,13 +395,13 @@
 
         if (!response.ok) {
           const errorPayload = await response.json().catch(() => null);
-          const message = errorPayload && errorPayload.message ? errorPayload.message : "Bookingen kunne ikke gennemfoeres.";
+          const message = errorPayload && errorPayload.message ? errorPayload.message : "The booking could not be completed.";
           throw new Error(message);
         }
 
         formEl.reset();
         selectedSlot = null;
-        setStatus("Tidspunktet er booket.", true);
+        setStatus("The time has been booked.", true);
         await fetchOptions();
       } catch (error) {
         setStatus(error.message, false);

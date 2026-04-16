@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlueFlame Dater</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --surface: rgba(10, 21, 37, 0.92);
+      --surface-soft: rgba(255, 255, 255, 0.04);
+      --line: rgba(140, 182, 255, 0.16);
+      --line-strong: rgba(140, 182, 255, 0.36);
+      --text: #eef5ff;
+      --muted: #abc0dd;
+      --soft: #7d95b4;
+      --blue: #4ea1ff;
+      --blue-soft: rgba(78, 161, 255, 0.16);
+      --rose: #d48cff;
+      --rose-soft: rgba(212, 140, 255, 0.14);
+      --rose-line: rgba(212, 140, 255, 0.32);
+      --success: #7fd4ff;
+      --shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(78, 161, 255, 0.2), transparent 22%),
+        radial-gradient(circle at top right, rgba(82, 235, 214, 0.1), transparent 18%),
+        linear-gradient(180deg, #12253f 0%, #07111f 100%);
+      color: var(--text);
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    main {
+      width: 100%;
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 26px 18px 64px;
+      display: grid;
+      gap: 18px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .kicker,
+    .hint,
+    .meta,
+    label,
+    input,
+    button,
+    .status,
+    .empty {
+      font-size: 0.98rem;
+    }
+
+    .kicker,
+    .hint,
+    .meta,
+    label,
+    .status,
+    .empty {
+      color: var(--muted);
+    }
+
+    .panel {
+      display: grid;
+      gap: 18px;
+      padding: 22px;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: start;
+      flex-wrap: wrap;
+    }
+
+    .panel-title {
+      display: grid;
+      gap: 6px;
+    }
+
+    h2 {
+      font-size: 1.55rem;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      font-weight: 650;
+    }
+
+    h3 {
+      font-size: 1.08rem;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      font-weight: 600;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      padding: 8px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface-soft);
+    }
+
+    .pill-held {
+      border-color: var(--rose-line);
+      background: var(--rose-soft);
+      color: var(--text);
+    }
+
+    .pill-archive {
+      border-color: rgba(140, 182, 255, 0.14);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+    }
+
+    form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    input {
+      width: 100%;
+      min-width: 0;
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--line-strong);
+    }
+
+    button,
+    .button-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 44px;
+      padding: 0 16px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      text-decoration: none;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button:hover,
+    button:focus-visible,
+    .button-link:hover,
+    .button-link:focus-visible {
+      border-color: var(--blue);
+      outline: none;
+    }
+
+    button:disabled {
+      cursor: default;
+      color: var(--soft);
+      border-color: var(--line);
+    }
+
+    .save-button-dirty {
+      border-color: var(--rose-line);
+      background: linear-gradient(180deg, rgba(95, 52, 122, 0.94), rgba(64, 30, 90, 0.98));
+      color: var(--text);
+      box-shadow: 0 0 0 1px rgba(212, 140, 255, 0.1) inset;
+    }
+
+    .save-button-dirty:hover,
+    .save-button-dirty:focus-visible {
+      border-color: #e5a9ff;
+      box-shadow:
+        0 0 0 1px rgba(212, 140, 255, 0.12) inset,
+        0 10px 24px rgba(74, 22, 106, 0.26);
+    }
+
+    .ghost {
+      background: transparent;
+    }
+
+    .app {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: 1fr;
+    }
+
+    .day-strip-shell {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .day-strip-wrap {
+      --fade-strength: rgba(10, 21, 37, 0.98);
+      position: relative;
+      overflow: hidden;
+      min-width: 0;
+      border-radius: 20px;
+    }
+
+    .day-strip-wrap::before,
+    .day-strip-wrap::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 8px;
+      width: 44px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 140ms ease;
+      z-index: 2;
+    }
+
+    .day-strip-wrap::before {
+      left: 0;
+      background: linear-gradient(270deg, rgba(10, 21, 37, 0), var(--fade-strength));
+    }
+
+    .day-strip-wrap::after {
+      right: 0;
+      background: linear-gradient(90deg, rgba(10, 21, 37, 0), var(--fade-strength));
+    }
+
+    .day-strip-wrap.can-scroll-left::before,
+    .day-strip-wrap.can-scroll-right::after {
+      opacity: 1;
+    }
+
+    .day-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 2px 28px 8px 2px;
+      scroll-snap-type: x mandatory;
+      scroll-padding-inline: 2px;
+      scroll-behavior: smooth;
+      overscroll-behavior-x: contain;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(140, 182, 255, 0.4) transparent;
+    }
+
+    .day-strip::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .day-strip::-webkit-scrollbar-thumb {
+      background: rgba(140, 182, 255, 0.34);
+      border-radius: 999px;
+    }
+
+    .day-strip-control {
+      width: 42px;
+      min-width: 42px;
+      padding: 0;
+      border-radius: 999px;
+      font-size: 1.15rem;
+      font-weight: 600;
+    }
+
+    .day-strip-control[hidden] {
+      display: none;
+    }
+
+    .day-card {
+      flex: 0 0 116px;
+      scroll-snap-align: start;
+      display: grid;
+      gap: 0;
+      min-height: 60px;
+      padding: 7px 8px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(15, 28, 48, 0.92), rgba(9, 18, 32, 0.96));
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .day-card:hover,
+    .day-card:focus-visible {
+      transform: translateY(-1px);
+      border-color: var(--line-strong);
+      outline: none;
+    }
+
+    .day-card.selected {
+      border-color: rgba(140, 182, 255, 0.62);
+      box-shadow: 0 0 0 1px rgba(140, 182, 255, 0.18) inset;
+    }
+
+    .day-card.available {
+      border-color: rgba(78, 161, 255, 0.52);
+      background: linear-gradient(180deg, rgba(20, 63, 116, 0.94), rgba(12, 33, 63, 0.98));
+    }
+
+    .day-card.held {
+      border-color: var(--rose-line);
+      background: linear-gradient(180deg, rgba(95, 52, 122, 0.94), rgba(64, 30, 90, 0.98));
+      box-shadow: 0 0 0 1px rgba(212, 140, 255, 0.08) inset;
+    }
+
+    .day-head {
+      display: grid;
+      gap: 0;
+    }
+
+    .day-name {
+      font-size: 1.02rem;
+      font-weight: 650;
+      letter-spacing: -0.03em;
+    }
+
+    .day-date {
+      color: var(--text);
+      font-size: 0.84rem;
+      line-height: 0.94;
+      letter-spacing: -0.03em;
+      font-weight: 600;
+    }
+
+    .day-time {
+      font-size: 0.84rem;
+      line-height: 0.92;
+      letter-spacing: -0.02em;
+      font-weight: 550;
+      color: var(--text);
+    }
+
+    .day-time-input {
+      width: 100%;
+      min-width: 0;
+      height: auto;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      font-size: 0.84rem;
+      line-height: 0.92;
+      letter-spacing: -0.02em;
+      font-weight: 550;
+      box-shadow: none;
+      text-align: center;
+      caret-color: var(--text);
+    }
+
+    .day-time-input:focus {
+      outline: none;
+    }
+
+    .day-time-input::placeholder {
+      color: rgba(238, 245, 255, 0.5);
+    }
+
+    .slot-status {
+      min-height: 1.4em;
+    }
+
+    .automation-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .automation-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .automation-item {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .automation-row {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 108px minmax(0, 1fr) auto;
+      align-items: center;
+    }
+
+    .automation-time-input {
+      text-align: center;
+    }
+
+    .weekday-pills {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .weekday-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 50px;
+      height: 34px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .weekday-pill.active {
+      border-color: rgba(78, 161, 255, 0.52);
+      background: rgba(78, 161, 255, 0.14);
+      color: var(--text);
+    }
+
+    .weekday-pill:disabled {
+      cursor: default;
+      border-color: rgba(140, 182, 255, 0.1);
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--soft);
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .item {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .item-held {
+      border-color: rgba(140, 182, 255, 0.14);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .item-head {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .item-title {
+      font-weight: 650;
+      letter-spacing: -0.02em;
+    }
+
+    .item-copy {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .section-copy {
+      display: grid;
+      gap: 8px;
+    }
+
+    .status {
+      min-height: 1.5em;
+    }
+
+    .success {
+      color: var(--success);
+    }
+
+    .empty {
+      padding: 16px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 16px;
+    }
+
+    @media (max-width: 680px) {
+      main {
+        padding: 16px 12px 52px;
+      }
+
+      .panel {
+        padding: 18px;
+        border-radius: 18px;
+      }
+
+      .day-strip-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .day-strip-control {
+        display: none;
+      }
+
+      .day-card {
+        flex-basis: 112px;
+      }
+
+      .automation-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+      }
+
+      .automation-time-input,
+      .weekday-pills {
+        grid-column: 1 / -1;
+      }
+
+      .weekday-pills {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .weekday-pill {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .automation-row .ghost {
+        grid-column: 2;
+        justify-self: end;
+        width: auto;
+        min-width: 0;
+      }
+
+      button,
+      .button-link {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section id="setup-panel" class="panel hidden">
+      <div class="panel-title">
+        <h2>Configuration missing</h2>
+        <p class="kicker">`booking-config.js` needs a valid Supabase URL and anon key before Dater can load.</p>
+      </div>
+    </section>
+
+    <section id="auth-panel" class="panel hidden">
+      <div class="panel-head">
+        <div class="panel-title">
+          <h2>Log in</h2>
+          <p class="kicker">Enter your email and we will send you a magic link.</p>
+        </div>
+      </div>
+
+      <form id="login-form">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required>
+        </div>
+
+        <div>
+          <button id="login-button" type="submit">Send magic link</button>
+        </div>
+
+        <p id="auth-status" class="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section id="app-panel" class="app hidden">
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <h2>Availability</h2>
+          </div>
+
+          <div class="meta">
+            <span id="profile-pill" class="pill">Loading profile...</span>
+            <button id="signout-button" type="button" class="ghost">Log out</button>
+          </div>
+        </div>
+
+        <div class="day-strip-shell">
+          <button id="day-strip-prev" type="button" class="day-strip-control ghost" aria-label="Scroll availability left">&lsaquo;</button>
+          <div id="day-strip-wrap" class="day-strip-wrap">
+            <div id="day-strip" class="day-strip" aria-label="Days you can manage"></div>
+          </div>
+          <button id="day-strip-next" type="button" class="day-strip-control ghost" aria-label="Scroll availability right">&rsaquo;</button>
+        </div>
+        <p id="availability-status" class="status slot-status" aria-live="polite"></p>
+
+        <div class="section-copy">
+          <h3>Automations</h3>
+        </div>
+        <div id="automations-list" class="automation-list"></div>
+        <div class="automation-actions">
+          <button id="add-automation-button" type="button" class="ghost">Add automation</button>
+          <button id="save-availability-button" type="button">Save</button>
+        </div>
+        <p id="automation-status" class="status" aria-live="polite"></p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div class="meta">
+            <button id="refresh-button" type="button" class="ghost">Refresh</button>
+          </div>
+        </div>
+
+        <div class="section-copy">
+          <h3>Upcoming dates</h3>
+          <div id="upcoming-list" class="list"></div>
+          <p id="upcoming-empty" class="empty hidden">No booked dates are coming up.</p>
+        </div>
+
+        <div class="section-copy">
+          <h3>Held dates</h3>
+          <div id="held-list" class="list"></div>
+          <p id="held-empty" class="empty hidden">No held dates are in the past yet.</p>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="booking-config.js"></script>
+  <script>
+    const config = window.BOOKING_CONFIG || {};
+    const setupPanelEl = document.getElementById("setup-panel");
+    const authPanelEl = document.getElementById("auth-panel");
+    const appPanelEl = document.getElementById("app-panel");
+    const loginFormEl = document.getElementById("login-form");
+    const loginButtonEl = document.getElementById("login-button");
+    const authStatusEl = document.getElementById("auth-status");
+    const automationsListEl = document.getElementById("automations-list");
+    const addAutomationButtonEl = document.getElementById("add-automation-button");
+    const saveAvailabilityButtonEl = document.getElementById("save-availability-button");
+    const automationStatusEl = document.getElementById("automation-status");
+    const dayStripWrapEl = document.getElementById("day-strip-wrap");
+    const dayStripEl = document.getElementById("day-strip");
+    const dayStripPrevButtonEl = document.getElementById("day-strip-prev");
+    const dayStripNextButtonEl = document.getElementById("day-strip-next");
+    const availabilityStatusEl = document.getElementById("availability-status");
+    const upcomingListEl = document.getElementById("upcoming-list");
+    const upcomingEmptyEl = document.getElementById("upcoming-empty");
+    const heldListEl = document.getElementById("held-list");
+    const heldEmptyEl = document.getElementById("held-empty");
+    const profilePillEl = document.getElementById("profile-pill");
+    const refreshButtonEl = document.getElementById("refresh-button");
+    const signoutButtonEl = document.getElementById("signout-button");
+    const localTestingConfig = config.localTesting || {};
+    const pageParams = new URLSearchParams(window.location.search);
+    const isDummySessionEnabled =
+      localTestingConfig.enableDummySession === true ||
+      pageParams.get("local") === "1";
+
+    function isConfigured() {
+      return (
+        config.supabaseUrl &&
+        config.supabaseAnonKey &&
+        !config.supabaseUrl.includes("YOUR_PROJECT_REF") &&
+        !config.supabaseAnonKey.includes("YOUR_SUPABASE_ANON_KEY") &&
+        window.supabase &&
+        typeof window.supabase.createClient === "function"
+      );
+    }
+
+    function setStatus(element, message, isSuccess) {
+      element.textContent = message;
+      element.className = isSuccess ? "status success" : "status";
+    }
+
+    function hideAllPanels() {
+      setupPanelEl.classList.add("hidden");
+      authPanelEl.classList.add("hidden");
+      appPanelEl.classList.add("hidden");
+    }
+
+    function addDays(dateString, numberOfDays) {
+      const date = new Date(dateString + "T00:00:00Z");
+      date.setUTCDate(date.getUTCDate() + numberOfDays);
+      return date.toISOString().slice(0, 10);
+    }
+
+    function getBrowserLocalDateString() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      return year + "-" + month + "-" + day;
+    }
+
+    function formatDayHeading(dateString) {
+      const date = new Date(dateString + "T12:00:00Z");
+      return new Intl.DateTimeFormat("en-US", {
+        weekday: "short"
+      }).format(date);
+    }
+
+    function formatDayDate(dateString) {
+      const date = new Date(dateString + "T12:00:00Z");
+      return String(date.getUTCDate()) + ".";
+    }
+
+    function formatTime(timeValue) {
+      if (!timeValue) {
+        return "No time set";
+      }
+
+      return String(timeValue).slice(0, 5);
+    }
+
+    function normalizeTimeInput(timeValue) {
+      const cleaned = String(timeValue || "").trim();
+      const match = cleaned.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+      return match ? match[0] : "";
+    }
+
+    function formatTimeDraftInput(timeValue) {
+      const rawValue = String(timeValue || "").replace(/[^\d:]/g, "").slice(0, 5);
+      if (rawValue.indexOf(":") !== -1) {
+        const parts = rawValue.split(":");
+        const hours = (parts[0] || "").replace(/\D/g, "").slice(0, 2);
+        const minutes = (parts[1] || "").replace(/\D/g, "").slice(0, 2);
+        return minutes.length ? hours + ":" + minutes : hours + ":";
+      }
+
+      const digits = rawValue.replace(/\D/g, "").slice(0, 4);
+      if (digits.length <= 2) {
+        return digits;
+      }
+      return digits.slice(0, 2) + ":" + digits.slice(2);
+    }
+
+    function formatDateTime(dateString, timeValue) {
+      return formatDayHeading(dateString) + ", " + formatDayDate(dateString) + " at " + formatTime(timeValue);
+    }
+
+    const supabaseClient = isConfigured()
+      ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey)
+      : null;
+
+    let activeProfile = null;
+    let availabilityByDate = {};
+    let bookingsByDate = {};
+    let windowDates = [];
+    let selectedDate = null;
+    let localTestingState = createLocalTestingState();
+    let draftTestingState = cloneTestingState(localTestingState);
+    let selectedTimeDraft = "";
+    let isSavingInline = false;
+    const visibleWindowStartOffset = 2;
+    const visibleWindowEndOffset = 14;
+    const automationHorizonEndOffset = 26;
+    const weekdayOptions = [
+      { value: 1, label: "Mon" },
+      { value: 2, label: "Tue" },
+      { value: 3, label: "Wed" },
+      { value: 4, label: "Thu" },
+      { value: 5, label: "Fri" },
+      { value: 6, label: "Sat" },
+      { value: 0, label: "Sun" }
+    ];
+
+    function createLocalTestingState() {
+      return {
+        profile: localTestingConfig.profile || {
+          id: "local-profile",
+          slug: config.defaultSlug || "local-profile",
+          display_name: "Local Tester",
+          notification_email: "local@example.com"
+        },
+        automations: Array.isArray(localTestingConfig.automations)
+          ? localTestingConfig.automations.map(function (item) {
+              return Object.assign({}, item);
+            })
+          : [],
+        manualOverrides: localTestingConfig.manualOverrides
+          ? JSON.parse(JSON.stringify(localTestingConfig.manualOverrides))
+          : {},
+        heldDates: Array.isArray(localTestingConfig.heldDates)
+          ? localTestingConfig.heldDates.map(function (item) {
+              return Object.assign({}, item);
+            })
+          : []
+      };
+    }
+
+    function cloneTestingState(state) {
+      return JSON.parse(JSON.stringify(state));
+    }
+
+    function getWorkingTestingState() {
+      return isDummySessionEnabled ? draftTestingState : localTestingState;
+    }
+
+    function isDraftDirty() {
+      if (!isDummySessionEnabled) {
+        return false;
+      }
+
+      return JSON.stringify(draftTestingState) !== JSON.stringify(localTestingState);
+    }
+
+    function refreshSaveButtonState() {
+      const isDirty = isDraftDirty();
+      saveAvailabilityButtonEl.disabled = !isDirty;
+      saveAvailabilityButtonEl.classList.toggle("save-button-dirty", isDirty);
+    }
+
+    function updateDayStripControls() {
+      const maxScrollLeft = Math.max(0, dayStripEl.scrollWidth - dayStripEl.clientWidth);
+      const canScrollLeft = dayStripEl.scrollLeft > 8;
+      const canScrollRight = dayStripEl.scrollLeft < maxScrollLeft - 8;
+
+      dayStripWrapEl.classList.toggle("can-scroll-left", canScrollLeft);
+      dayStripWrapEl.classList.toggle("can-scroll-right", canScrollRight);
+      dayStripPrevButtonEl.disabled = !canScrollLeft;
+      dayStripNextButtonEl.disabled = !canScrollRight;
+    }
+
+    function getDayStripScrollAmount() {
+      return Math.max(180, Math.floor(dayStripEl.clientWidth * 0.72));
+    }
+
+    function scrollDayStrip(direction) {
+      dayStripEl.scrollBy({
+        left: getDayStripScrollAmount() * direction,
+        behavior: "smooth"
+      });
+    }
+
+    function keepCardVisibleInDayStrip(cardEl) {
+      if (!cardEl) {
+        return;
+      }
+
+      const railLeft = dayStripEl.scrollLeft;
+      const railRight = railLeft + dayStripEl.clientWidth;
+      const cardLeft = cardEl.offsetLeft;
+      const cardRight = cardLeft + cardEl.offsetWidth;
+      const gutter = 16;
+
+      if (cardLeft < railLeft + gutter) {
+        dayStripEl.scrollTo({
+          left: Math.max(0, cardLeft - gutter),
+          behavior: "smooth"
+        });
+        return;
+      }
+
+      if (cardRight > railRight - gutter) {
+        dayStripEl.scrollTo({
+          left: cardRight - dayStripEl.clientWidth + gutter,
+          behavior: "smooth"
+        });
+      }
+    }
+
+    function buildDateRange(startOffset, endOffset) {
+      const localToday = getBrowserLocalDateString();
+      const dates = [];
+      for (let offset = startOffset; offset <= endOffset; offset += 1) {
+        dates.push(addDays(localToday, offset));
+      }
+      return dates;
+    }
+
+    function buildWindowDates() {
+      return buildDateRange(visibleWindowStartOffset, visibleWindowEndOffset);
+    }
+
+    function buildAutomationHorizonDates() {
+      return buildDateRange(visibleWindowStartOffset, automationHorizonEndOffset);
+    }
+
+    function getWeekdayValue(dateString) {
+      return new Date(dateString + "T12:00:00Z").getUTCDay();
+    }
+
+    function buildAvailabilityFromAutomations(windowDateList, automationList, manualOverrides) {
+      const nextAvailability = {};
+
+      for (const dateString of windowDateList) {
+        const weekdayValue = getWeekdayValue(dateString);
+        let chosenTime = "";
+
+        for (const automation of automationList) {
+          if (!Array.isArray(automation.weekdays) || automation.weekdays.indexOf(weekdayValue) === -1) {
+            continue;
+          }
+
+          const normalizedTime = normalizeTimeInput(automation.start_time);
+          if (normalizedTime) {
+            chosenTime = normalizedTime;
+          }
+        }
+
+        if (chosenTime) {
+          nextAvailability[dateString] = {
+            id: "generated-" + dateString,
+            available_on: dateString,
+            start_time: chosenTime,
+            source: "automation"
+          };
+        }
+      }
+
+      const overrides = manualOverrides || {};
+      for (const dateString of Object.keys(overrides)) {
+        const override = overrides[dateString];
+        if (!override) {
+          continue;
+        }
+
+        if (override.action === "clear") {
+          delete nextAvailability[dateString];
+          continue;
+        }
+
+        const normalizedTime = normalizeTimeInput(override.start_time);
+        if (override.action === "set" && normalizedTime) {
+          nextAvailability[dateString] = {
+            id: "manual-" + dateString,
+            available_on: dateString,
+            start_time: normalizedTime,
+            source: "manual"
+          };
+        }
+      }
+
+      return nextAvailability;
+    }
+
+    function preserveVisibleWindowAvailability() {
+      const currentWindow = buildWindowDates();
+      const currentOverrides = Object.assign({}, draftTestingState.manualOverrides || {});
+      const currentAutomations = draftTestingState.automations.slice();
+      const currentAvailability = buildAvailabilityFromAutomations(currentWindow, currentAutomations, currentOverrides);
+
+      for (const dateString of currentWindow) {
+        const beforeItem = currentAvailability[dateString] || null;
+
+        if (!beforeItem) {
+          continue;
+        }
+
+        currentOverrides[dateString] = {
+          action: "set",
+          start_time: String(beforeItem.start_time).slice(0, 5)
+        };
+      }
+
+      draftTestingState.manualOverrides = currentOverrides;
+    }
+
+    function preserveCurrentWindowForRemovedAutomation(automationId) {
+      preserveVisibleWindowAvailability();
+      const currentAutomations = draftTestingState.automations.slice();
+      const nextAutomations = currentAutomations.filter(function (item) {
+        return item.id !== automationId;
+      });
+
+      draftTestingState.automations = nextAutomations;
+    }
+
+    function renderAutomations() {
+      automationsListEl.innerHTML = "";
+
+      if (!isDummySessionEnabled) {
+        const copyEl = document.createElement("p");
+        copyEl.className = "empty";
+        copyEl.textContent = "Automation editing is wired for local testing right now and still needs the backend migration.";
+        automationsListEl.appendChild(copyEl);
+        addAutomationButtonEl.disabled = true;
+        return;
+      }
+
+      addAutomationButtonEl.disabled = false;
+
+      for (const automation of draftTestingState.automations) {
+        const itemEl = document.createElement("article");
+        itemEl.className = "automation-item";
+
+        const removeButtonEl = document.createElement("button");
+        removeButtonEl.type = "button";
+        removeButtonEl.className = "ghost";
+        removeButtonEl.textContent = "Remove";
+        removeButtonEl.addEventListener("click", function () {
+          preserveCurrentWindowForRemovedAutomation(automation.id);
+          setStatus(automationStatusEl, "", false);
+          loadDashboard();
+        });
+
+        const rowEl = document.createElement("div");
+        rowEl.className = "automation-row";
+
+        const timeInputEl = document.createElement("input");
+        timeInputEl.className = "automation-time-input";
+        timeInputEl.type = "text";
+        timeInputEl.inputMode = "numeric";
+        timeInputEl.placeholder = "HH:MM";
+        timeInputEl.value = automation.start_time || "";
+        timeInputEl.addEventListener("input", function (event) {
+          const formattedValue = formatTimeDraftInput(event.target.value);
+          automation.start_time = formattedValue;
+          event.target.value = formattedValue;
+        });
+        timeInputEl.addEventListener("blur", function () {
+          automation.start_time = normalizeTimeInput(automation.start_time) || automation.start_time;
+          loadDashboard();
+        });
+
+        const weekdayWrapEl = document.createElement("div");
+        weekdayWrapEl.className = "weekday-pills";
+        const claimedWeekdays = new Set(
+          draftTestingState.automations
+            .filter(function (item) {
+              return item.id !== automation.id;
+            })
+            .flatMap(function (item) {
+              return Array.isArray(item.weekdays) ? item.weekdays : [];
+            })
+        );
+
+        for (const option of weekdayOptions) {
+          const weekdayButtonEl = document.createElement("button");
+          weekdayButtonEl.type = "button";
+          weekdayButtonEl.className = "weekday-pill";
+          const currentWeekdays = Array.isArray(automation.weekdays) ? automation.weekdays : [];
+          const isActive = currentWeekdays.indexOf(option.value) !== -1;
+          const isClaimedElsewhere = claimedWeekdays.has(option.value);
+          if (isActive) {
+            weekdayButtonEl.classList.add("active");
+          }
+          if (!isActive && isClaimedElsewhere) {
+            weekdayButtonEl.disabled = true;
+          }
+          weekdayButtonEl.textContent = option.label;
+          weekdayButtonEl.addEventListener("click", function () {
+            preserveVisibleWindowAvailability();
+            const nextWeekdays = Array.isArray(automation.weekdays) ? automation.weekdays.slice() : [];
+            if (nextWeekdays.indexOf(option.value) === -1) {
+              if (claimedWeekdays.has(option.value)) {
+                return;
+              }
+              nextWeekdays.push(option.value);
+            } else {
+              automation.weekdays = nextWeekdays.filter(function (weekdayValue) {
+                return weekdayValue !== option.value;
+              });
+              loadDashboard();
+              return;
+            }
+
+            automation.weekdays = nextWeekdays;
+            loadDashboard();
+          });
+          weekdayWrapEl.appendChild(weekdayButtonEl);
+        }
+
+        rowEl.appendChild(timeInputEl);
+        rowEl.appendChild(weekdayWrapEl);
+        rowEl.appendChild(removeButtonEl);
+        itemEl.appendChild(rowEl);
+        automationsListEl.appendChild(itemEl);
+      }
+    }
+
+    function renderDayStrip() {
+      dayStripEl.innerHTML = "";
+
+      for (const dateString of windowDates) {
+        const availability = availabilityByDate[dateString] || null;
+        const booking = bookingsByDate[dateString] || null;
+        const cardEl = document.createElement("button");
+        cardEl.type = "button";
+        cardEl.className = "day-card";
+
+        if (selectedDate === dateString) {
+          cardEl.classList.add("selected");
+        }
+        if (availability) {
+          cardEl.classList.add("available");
+        }
+        if (booking) {
+          cardEl.classList.add("held");
+        }
+
+        cardEl.addEventListener("click", function () {
+          selectedDate = dateString;
+          selectedTimeDraft = availability ? String(availability.start_time).slice(0, 5) : "";
+          renderDayStrip();
+        });
+
+        const headEl = document.createElement("div");
+        headEl.className = "day-head";
+
+        const dayDateEl = document.createElement("span");
+        dayDateEl.className = "day-date";
+        dayDateEl.textContent = formatDayDate(dateString) + " " + formatDayHeading(dateString);
+
+        let dayTimeEl = document.createElement("span");
+        if (selectedDate === dateString && !booking) {
+          const inputEl = document.createElement("input");
+          inputEl.className = "day-time day-time-input";
+          inputEl.type = "text";
+          inputEl.inputMode = "numeric";
+          inputEl.placeholder = "HH:MM";
+          inputEl.value = selectedTimeDraft;
+          inputEl.setAttribute("aria-label", "Set time for " + formatDayDate(dateString) + " " + formatDayHeading(dateString));
+          inputEl.addEventListener("click", function (event) {
+            event.stopPropagation();
+          });
+          inputEl.addEventListener("input", function (event) {
+            const formattedValue = formatTimeDraftInput(event.target.value);
+            selectedTimeDraft = formattedValue;
+            event.target.value = formattedValue;
+          });
+          inputEl.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              commitSelectedTime();
+            }
+            if (event.key === "Escape") {
+              selectedTimeDraft = availability ? String(availability.start_time).slice(0, 5) : "";
+              renderDayStrip();
+            }
+          });
+          inputEl.addEventListener("blur", function () {
+            commitSelectedTime();
+          });
+          dayTimeEl = inputEl;
+          window.requestAnimationFrame(function () {
+            inputEl.focus({ preventScroll: true });
+            inputEl.select();
+          });
+        } else {
+          dayTimeEl.className = "day-time";
+          dayTimeEl.textContent = availability ? formatTime(availability.start_time) : "--:--";
+        }
+
+        headEl.appendChild(dayDateEl);
+        cardEl.appendChild(headEl);
+        cardEl.appendChild(dayTimeEl);
+        dayStripEl.appendChild(cardEl);
+
+        if (selectedDate === dateString) {
+          window.requestAnimationFrame(function () {
+            keepCardVisibleInDayStrip(cardEl);
+          });
+        }
+      }
+
+      window.requestAnimationFrame(updateDayStripControls);
+    }
+
+    function syncSelectedDraft() {
+      if (!selectedDate) {
+        selectedTimeDraft = "";
+        return;
+      }
+
+      const availability = availabilityByDate[selectedDate] || null;
+      selectedTimeDraft = availability ? String(availability.start_time).slice(0, 5) : "";
+    }
+
+    function renderUpcomingList() {
+      upcomingListEl.innerHTML = "";
+      const todayString = getBrowserLocalDateString();
+      const upcomingDates = Object.values(bookingsByDate)
+        .filter(function (item) {
+          return item.booked_on >= todayString;
+        })
+        .sort(function (a, b) {
+          return a.booked_on.localeCompare(b.booked_on);
+        });
+
+      upcomingEmptyEl.classList.toggle("hidden", upcomingDates.length !== 0);
+
+      for (const item of upcomingDates) {
+        const rowEl = document.createElement("article");
+        rowEl.className = "item";
+
+        const headEl = document.createElement("div");
+        headEl.className = "item-head";
+
+        const titleEl = document.createElement("div");
+        titleEl.className = "item-title";
+        titleEl.textContent = formatDateTime(item.booked_on, item.start_time);
+
+        const stateEl = document.createElement("span");
+        stateEl.className = "pill pill-held";
+        stateEl.textContent = "Booked";
+
+        const copyEl = document.createElement("p");
+        copyEl.className = "item-copy";
+        copyEl.textContent = item.guest_name + " - " + item.guest_contact;
+
+        headEl.appendChild(titleEl);
+        headEl.appendChild(stateEl);
+        rowEl.appendChild(headEl);
+        rowEl.appendChild(copyEl);
+        upcomingListEl.appendChild(rowEl);
+      }
+    }
+
+    function renderHeldList() {
+      heldListEl.innerHTML = "";
+      const todayString = getBrowserLocalDateString();
+      const heldDates = Object.values(bookingsByDate)
+        .filter(function (item) {
+          return item.booked_on < todayString;
+        })
+        .sort(function (a, b) {
+          return b.booked_on.localeCompare(a.booked_on);
+        });
+
+      heldEmptyEl.classList.toggle("hidden", heldDates.length !== 0);
+
+      for (const item of heldDates) {
+        const rowEl = document.createElement("article");
+        rowEl.className = "item item-held";
+
+        const headEl = document.createElement("div");
+        headEl.className = "item-head";
+
+        const titleEl = document.createElement("div");
+        titleEl.className = "item-title";
+        titleEl.textContent = formatDateTime(item.booked_on, item.start_time);
+
+        const stateEl = document.createElement("span");
+        stateEl.className = "pill pill-archive";
+        stateEl.textContent = "Held";
+
+        const copyEl = document.createElement("p");
+        copyEl.className = "item-copy";
+        copyEl.textContent = item.guest_name + " - " + item.guest_contact;
+
+        headEl.appendChild(titleEl);
+        headEl.appendChild(stateEl);
+        rowEl.appendChild(headEl);
+        rowEl.appendChild(copyEl);
+        heldListEl.appendChild(rowEl);
+      }
+    }
+
+    async function loadDashboard() {
+      if (isDummySessionEnabled) {
+        activeProfile = Object.assign({}, draftTestingState.profile);
+        const automationHorizonDates = buildAutomationHorizonDates();
+        windowDates = automationHorizonDates.slice();
+        selectedDate = selectedDate || windowDates[0] || null;
+        const horizonAvailability = buildAvailabilityFromAutomations(
+          automationHorizonDates,
+          draftTestingState.automations,
+          draftTestingState.manualOverrides
+        );
+        availabilityByDate = Object.assign({}, horizonAvailability);
+        bookingsByDate = {};
+
+        for (const item of draftTestingState.heldDates) {
+          bookingsByDate[item.booked_on] = Object.assign({}, item);
+        }
+
+        profilePillEl.textContent = (activeProfile.display_name || activeProfile.slug || "Profile").trim() + " - local testing";
+        if (selectedDate && !windowDates.includes(selectedDate)) {
+          selectedDate = windowDates[0] || null;
+        }
+
+        syncSelectedDraft();
+        renderAutomations();
+        renderDayStrip();
+        renderUpcomingList();
+        renderHeldList();
+        refreshSaveButtonState();
+        return;
+      }
+
+      if (!supabaseClient) {
+        hideAllPanels();
+        setupPanelEl.classList.remove("hidden");
+        return;
+      }
+
+      const { data: profileData, error: profileError } = await supabaseClient
+        .from("profiles")
+        .select("id, slug, display_name, notification_email")
+        .single();
+
+      if (profileError) {
+        throw new Error(profileError.message || "Could not load profile.");
+      }
+
+      activeProfile = profileData;
+      windowDates = buildWindowDates();
+      selectedDate = selectedDate || windowDates[0] || null;
+
+      const windowStart = windowDates[0];
+      const windowEnd = windowDates[windowDates.length - 1];
+
+      const [{ data: availabilityDays, error: availabilityError }, { data: bookings, error: bookingsError }] = await Promise.all([
+        supabaseClient
+          .from("availability_days")
+          .select("id, available_on, start_time")
+          .gte("available_on", windowStart)
+          .lte("available_on", windowEnd)
+          .order("available_on", { ascending: true }),
+        supabaseClient
+          .from("bookings")
+          .select("id, booked_on, start_time, guest_name, guest_contact")
+          .gte("booked_on", windowStart)
+          .order("booked_on", { ascending: true })
+      ]);
+
+      if (availabilityError || bookingsError) {
+        throw new Error(
+          availabilityError?.message ||
+          bookingsError?.message ||
+          "Could not load availability."
+        );
+      }
+
+      availabilityByDate = {};
+      bookingsByDate = {};
+
+      for (const item of availabilityDays || []) {
+        availabilityByDate[item.available_on] = item;
+      }
+
+      for (const item of bookings || []) {
+        bookingsByDate[item.booked_on] = item;
+      }
+
+      profilePillEl.textContent = (profileData.display_name || profileData.slug || "Profile").trim();
+      if (selectedDate && !windowDates.includes(selectedDate)) {
+        selectedDate = windowDates[0] || null;
+      }
+
+      syncSelectedDraft();
+      renderAutomations();
+      renderDayStrip();
+      renderUpcomingList();
+      renderHeldList();
+      refreshSaveButtonState();
+    }
+
+    async function saveAvailabilityForDate(dateString, startTime) {
+      if (!dateString || !activeProfile) {
+        return;
+      }
+
+      if (isDummySessionEnabled) {
+        draftTestingState.manualOverrides[dateString] = {
+          action: "set",
+          start_time: startTime
+        };
+
+        setStatus(availabilityStatusEl, "", false);
+        await loadDashboard();
+        return;
+      }
+
+      try {
+        const { error } = await supabaseClient
+          .from("availability_days")
+          .upsert({
+            profile_id: activeProfile.id,
+            available_on: dateString,
+            start_time: startTime
+          }, {
+            onConflict: "profile_id,available_on"
+          });
+
+        if (error) {
+          throw error;
+        }
+
+        setStatus(availabilityStatusEl, "", false);
+        await loadDashboard();
+      } catch (error) {
+        setStatus(availabilityStatusEl, error.message || "Could not save this day.", false);
+      }
+    }
+
+    async function clearAvailabilityForDate(dateString) {
+      if (!dateString) {
+        return;
+      }
+
+      const existing = availabilityByDate[dateString];
+      if (!existing) {
+        return;
+      }
+
+      if (isDummySessionEnabled) {
+        draftTestingState.manualOverrides[dateString] = { action: "clear" };
+        setStatus(availabilityStatusEl, "", false);
+        await loadDashboard();
+        return;
+      }
+
+      try {
+        const { error } = await supabaseClient
+          .from("availability_days")
+          .delete()
+          .eq("id", existing.id);
+
+        if (error) {
+          throw error;
+        }
+
+        setStatus(availabilityStatusEl, "", false);
+        await loadDashboard();
+      } catch (error) {
+        setStatus(availabilityStatusEl, error.message || "Could not clear this day.", false);
+      }
+    }
+
+    async function commitSelectedTime() {
+      if (!selectedDate || isSavingInline) {
+        return;
+      }
+
+      const booking = bookingsByDate[selectedDate] || null;
+      if (booking) {
+        setStatus(availabilityStatusEl, "Held dates cannot be edited here.", false);
+        return;
+      }
+
+      const existing = availabilityByDate[selectedDate] || null;
+      const normalized = normalizeTimeInput(selectedTimeDraft);
+
+      if (!selectedTimeDraft.trim()) {
+        if (existing) {
+          isSavingInline = true;
+          await clearAvailabilityForDate(selectedDate);
+          isSavingInline = false;
+        }
+        return;
+      }
+
+      if (!normalized) {
+        setStatus(availabilityStatusEl, "Enter time as HH:MM.", false);
+        return;
+      }
+
+      if (existing && String(existing.start_time).slice(0, 5) === normalized) {
+        selectedTimeDraft = normalized;
+        return;
+      }
+
+      isSavingInline = true;
+      selectedTimeDraft = normalized;
+      await saveAvailabilityForDate(selectedDate, normalized);
+      isSavingInline = false;
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+
+      if (isDummySessionEnabled) {
+        hideAllPanels();
+        appPanelEl.classList.remove("hidden");
+        await loadDashboard();
+        return;
+      }
+
+      if (!supabaseClient) {
+        return;
+      }
+
+      const formData = new FormData(loginFormEl);
+      const email = String(formData.get("email") || "").trim();
+      if (!email) {
+        setStatus(authStatusEl, "Email is required.", false);
+        return;
+      }
+
+      loginButtonEl.disabled = true;
+      setStatus(authStatusEl, "Sending magic link...", false);
+
+      try {
+        const redirectTo = window.location.href.split("#")[0];
+        const { error } = await supabaseClient.auth.signInWithOtp({
+          email: email,
+          options: { emailRedirectTo: redirectTo }
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        setStatus(authStatusEl, "Magic link sent. Check your inbox.", true);
+      } catch (error) {
+        setStatus(authStatusEl, error.message || "Login failed.", false);
+      } finally {
+        loginButtonEl.disabled = false;
+      }
+    }
+
+    async function handleSession(session) {
+      hideAllPanels();
+
+      if (isDummySessionEnabled) {
+        appPanelEl.classList.remove("hidden");
+        await loadDashboard();
+        return;
+      }
+
+      if (!supabaseClient) {
+        setupPanelEl.classList.remove("hidden");
+        return;
+      }
+
+      if (!session) {
+        authPanelEl.classList.remove("hidden");
+        return;
+      }
+
+      appPanelEl.classList.remove("hidden");
+
+      try {
+        await loadDashboard();
+      } catch (error) {
+        authPanelEl.classList.remove("hidden");
+        appPanelEl.classList.add("hidden");
+        setStatus(authStatusEl, error.message || "Could not load Dater.", false);
+      }
+    }
+
+    async function boot() {
+      hideAllPanels();
+
+      if (isDummySessionEnabled) {
+        appPanelEl.classList.remove("hidden");
+        await loadDashboard();
+        return;
+      }
+
+      if (!supabaseClient) {
+        setupPanelEl.classList.remove("hidden");
+        return;
+      }
+
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) {
+        setStatus(authStatusEl, error.message || "Could not restore the session.", false);
+      }
+
+      await handleSession(data ? data.session : null);
+
+      supabaseClient.auth.onAuthStateChange(async function (_event, session) {
+        await handleSession(session);
+      });
+    }
+
+    loginFormEl.addEventListener("submit", handleLogin);
+    refreshButtonEl.addEventListener("click", function () {
+      loadDashboard().catch(function (error) {
+        setStatus(availabilityStatusEl, error.message || "Could not refresh the dashboard.", false);
+      });
+    });
+    dayStripPrevButtonEl.addEventListener("click", function () {
+      scrollDayStrip(-1);
+    });
+    dayStripNextButtonEl.addEventListener("click", function () {
+      scrollDayStrip(1);
+    });
+    dayStripEl.addEventListener("scroll", updateDayStripControls, { passive: true });
+    dayStripEl.addEventListener("wheel", function (event) {
+      const canScrollHorizontally = dayStripEl.scrollWidth > dayStripEl.clientWidth + 8;
+      const mostlyVertical = Math.abs(event.deltaY) > Math.abs(event.deltaX);
+
+      if (!canScrollHorizontally || !mostlyVertical) {
+        return;
+      }
+
+      event.preventDefault();
+      dayStripEl.scrollLeft += event.deltaY;
+      updateDayStripControls();
+    }, { passive: false });
+    window.addEventListener("resize", function () {
+      window.requestAnimationFrame(updateDayStripControls);
+    });
+    addAutomationButtonEl.addEventListener("click", function () {
+      if (!isDummySessionEnabled) {
+        setStatus(automationStatusEl, "Automation editing still needs the backend migration.", false);
+        return;
+      }
+
+      draftTestingState.automations.push({
+        id: "auto-" + Date.now(),
+        start_time: "",
+        weekdays: []
+      });
+      setStatus(automationStatusEl, "", false);
+      loadDashboard();
+    });
+    saveAvailabilityButtonEl.addEventListener("click", function () {
+      if (isDummySessionEnabled) {
+        localTestingState = cloneTestingState(draftTestingState);
+        setStatus(automationStatusEl, "Draft saved. Client-facing availability is now updated.", true);
+        loadDashboard();
+        return;
+      }
+
+      setStatus(automationStatusEl, "Save still needs the backend persistence layer.", false);
+    });
+    signoutButtonEl.addEventListener("click", function () {
+      if (isDummySessionEnabled) {
+        selectedDate = null;
+        selectedTimeDraft = "";
+        localTestingState = createLocalTestingState();
+        draftTestingState = cloneTestingState(localTestingState);
+        handleSession({ user: { id: "local-testing-user" } });
+        return;
+      }
+
+      supabaseClient.auth.signOut();
+    });
+    boot();
+  </script>
+</body>
+</html>

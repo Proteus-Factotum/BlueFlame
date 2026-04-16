@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlueFlame Embed</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f0f0f;
+      --surface: #161616;
+      --surface-strong: #1d1d1d;
+      --line: rgba(242, 242, 240, 0.12);
+      --line-strong: rgba(242, 242, 240, 0.28);
+      --text: #f2f2f0;
+      --muted: #b4b4af;
+      --soft: #8d8d87;
+      --accent: #f2f2f0;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.26);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 16px;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.06), transparent 28%),
+        linear-gradient(180deg, #111111 0%, #0a0a0a 100%);
+      color: var(--text);
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    .embed-shell {
+      width: 100%;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .widget {
+      display: grid;
+      gap: 18px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(18, 18, 18, 0.94);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .header {
+      display: grid;
+      gap: 6px;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--soft);
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(1.4rem, 2.8vw, 1.9rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      font-weight: 650;
+    }
+
+    .lede,
+    .status,
+    .empty,
+    .hint,
+    .field-label,
+    input,
+    button {
+      font-size: 0.96rem;
+    }
+
+    .lede,
+    .status,
+    .empty,
+    .hint,
+    .field-label {
+      color: var(--muted);
+    }
+
+    .slots-block {
+      display: grid;
+      gap: 12px;
+    }
+
+    .slots-scroll {
+      position: relative;
+    }
+
+    .slots-scroll::after {
+      content: "";
+      position: absolute;
+      inset: 0 0 0 auto;
+      width: 28px;
+      pointer-events: none;
+      background: linear-gradient(90deg, rgba(15, 15, 15, 0), rgba(15, 15, 15, 0.96));
+    }
+
+    .options {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      scroll-snap-type: x proximity;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(242, 242, 240, 0.24) transparent;
+    }
+
+    .options:empty,
+    .hidden {
+      display: none;
+    }
+
+    .option {
+      position: relative;
+      flex: 0 0 156px;
+      scroll-snap-align: start;
+      cursor: pointer;
+    }
+
+    .option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .option-card {
+      display: grid;
+      gap: 10px;
+      min-height: 132px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(34, 34, 34, 0.9), rgba(22, 22, 22, 0.96));
+      transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+    }
+
+    .option:hover .option-card,
+    .option input:focus-visible + .option-card {
+      border-color: var(--line-strong);
+      transform: translateY(-1px);
+    }
+
+    .option input:checked + .option-card {
+      border-color: var(--accent);
+      background: linear-gradient(180deg, rgba(60, 60, 60, 0.94), rgba(24, 24, 24, 0.98));
+    }
+
+    .day-name {
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .day-date {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .day-time {
+      margin-top: auto;
+      color: var(--text);
+      font-size: 1.15rem;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .empty {
+      padding: 18px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .fields {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    input {
+      width: 100%;
+      min-width: 0;
+      padding: 13px 0 10px;
+      border: 0;
+      border-bottom: 1px solid var(--line-strong);
+      outline: none;
+      color: var(--text);
+      background: transparent;
+      border-radius: 0;
+      line-height: 1.4;
+    }
+
+    input::placeholder {
+      color: var(--soft);
+    }
+
+    input:focus {
+      border-bottom-color: var(--accent);
+    }
+
+    button {
+      height: 44px;
+      padding: 0 18px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: var(--surface-strong);
+      color: var(--text);
+      font-weight: 550;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button:hover,
+    button:focus-visible {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    button:disabled {
+      cursor: default;
+      color: var(--soft);
+      border-color: var(--line);
+      background: var(--surface);
+    }
+
+    .status-row {
+      display: flex;
+      gap: 14px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .status {
+      min-height: 1.5em;
+    }
+
+    .success {
+      color: var(--text);
+    }
+
+    @media (max-width: 760px) {
+      .embed-shell {
+        padding: 14px;
+      }
+
+      .widget {
+        padding: 16px;
+        border-radius: 18px;
+      }
+
+      .fields {
+        grid-template-columns: 1fr;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .slots-scroll::after {
+        width: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="embed-shell">
+    <section class="widget" aria-labelledby="booking-heading">
+      <header class="header">
+        <p class="eyebrow">BlueFlame</p>
+        <h1 id="booking-heading">Choose a day and book a time</h1>
+        <p class="lede">Only visible times can be booked. Each day has a single start time.</p>
+      </header>
+
+      <section class="slots-block" aria-labelledby="options-heading">
+        <h2 id="options-heading" class="hidden">Available times</h2>
+        <div id="setup-message" class="empty hidden"></div>
+        <div class="slots-scroll">
+          <div id="options" class="options" role="radiogroup" aria-label="Available booking times"></div>
+        </div>
+        <p id="empty-message" class="empty hidden">There are no open times right now.</p>
+        <p id="options-status" class="status" aria-live="polite"></p>
+      </section>
+
+      <section aria-labelledby="form-heading">
+        <h2 id="form-heading" class="hidden">Booking</h2>
+        <form id="booking-form">
+          <div class="fields">
+            <div class="field">
+              <label class="field-label" for="name">Name</label>
+              <input id="name" name="name" type="text" autocomplete="name" placeholder="Your name" required>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="contact">Phone or email</label>
+              <input id="contact" name="contact" type="text" autocomplete="email" placeholder="Your contact details" required>
+            </div>
+
+            <button id="submit-button" type="submit" disabled>Book</button>
+          </div>
+
+          <div class="status-row">
+            <p class="hint">Once a time is taken, it disappears from the list.</p>
+            <p id="status" class="status" aria-live="polite"></p>
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
+
+  <script src="booking-config.js"></script>
+  <script>
+    const config = window.BOOKING_CONFIG || {};
+    const optionsEl = document.getElementById("options");
+    const formEl = document.getElementById("booking-form");
+    const submitButtonEl = document.getElementById("submit-button");
+    const statusEl = document.getElementById("status");
+    const optionsStatusEl = document.getElementById("options-status");
+    const emptyMessageEl = document.getElementById("empty-message");
+    const setupMessageEl = document.getElementById("setup-message");
+
+    let selectedSlot = null;
+
+    function isConfigured() {
+      return (
+        config.supabaseUrl &&
+        config.supabaseAnonKey &&
+        !config.supabaseUrl.includes("YOUR_PROJECT_REF") &&
+        !config.supabaseAnonKey.includes("YOUR_SUPABASE_ANON_KEY")
+      );
+    }
+
+    function getSlug() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("slug") || config.defaultSlug || "";
+    }
+
+    function setStatus(message, isSuccess) {
+      statusEl.textContent = message;
+      statusEl.className = isSuccess ? "status success" : "status";
+      notifyParentHeight();
+    }
+
+    function setOptionsStatus(message, isSuccess) {
+      optionsStatusEl.textContent = message;
+      optionsStatusEl.className = isSuccess ? "status success" : "status";
+      notifyParentHeight();
+    }
+
+    function formatDayName(dateString) {
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        weekday: "long"
+      });
+
+      const output = formatter.format(new Date(dateString + "T12:00:00Z"));
+      return output.charAt(0).toUpperCase() + output.slice(1);
+    }
+
+    function formatDayDate(dateString) {
+      return new Intl.DateTimeFormat("en-US", {
+        day: "numeric",
+        month: "short"
+      }).format(new Date(dateString + "T12:00:00Z"));
+    }
+
+    function formatDayTime(timeString) {
+      return String(timeString).slice(0, 5);
+    }
+
+    function renderOptions(slots) {
+      optionsEl.innerHTML = "";
+      emptyMessageEl.classList.toggle("hidden", slots.length !== 0);
+      setOptionsStatus(slots.length ? slots.length + " open days." : "", false);
+
+      for (const slot of slots) {
+        const labelEl = document.createElement("label");
+        labelEl.className = "option";
+
+        const inputEl = document.createElement("input");
+        inputEl.type = "radio";
+        inputEl.name = "slot";
+        inputEl.value = slot.available_on + "|" + slot.start_time;
+        inputEl.addEventListener("change", () => {
+          selectedSlot = slot;
+          submitButtonEl.disabled = false;
+          setStatus("", false);
+        });
+
+        const cardEl = document.createElement("span");
+        cardEl.className = "option-card";
+
+        const dayNameEl = document.createElement("span");
+        dayNameEl.className = "day-name";
+        dayNameEl.textContent = formatDayName(slot.available_on);
+
+        const dayDateEl = document.createElement("span");
+        dayDateEl.className = "day-date";
+        dayDateEl.textContent = formatDayDate(slot.available_on);
+
+        const dayTimeEl = document.createElement("span");
+        dayTimeEl.className = "day-time";
+        dayTimeEl.textContent = formatDayTime(slot.start_time);
+
+        cardEl.appendChild(dayNameEl);
+        cardEl.appendChild(dayDateEl);
+        cardEl.appendChild(dayTimeEl);
+        labelEl.appendChild(inputEl);
+        labelEl.appendChild(cardEl);
+        optionsEl.appendChild(labelEl);
+      }
+
+      notifyParentHeight();
+    }
+
+    async function fetchOptions() {
+      const slug = getSlug();
+
+      if (!slug) {
+        setupMessageEl.textContent = "No booking page has been selected yet.";
+        setupMessageEl.classList.remove("hidden");
+        setOptionsStatus("", false);
+        return;
+      }
+
+      if (!isConfigured()) {
+        setupMessageEl.textContent = "Fill in booking-config.js with your Supabase project to load times.";
+        setupMessageEl.classList.remove("hidden");
+        setOptionsStatus("", false);
+        return;
+      }
+
+      setupMessageEl.classList.add("hidden");
+      setOptionsStatus("Loading open times...", false);
+
+      const response = await fetch(config.supabaseUrl + "/rest/v1/rpc/get_public_booking_options", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": config.supabaseAnonKey,
+          "Authorization": "Bearer " + config.supabaseAnonKey
+        },
+        body: JSON.stringify({ target_slug: slug })
+      });
+
+      if (!response.ok) {
+        throw new Error("Could not load times.");
+      }
+
+      const slots = await response.json();
+      renderOptions(slots);
+    }
+
+    async function submitBooking(event) {
+      event.preventDefault();
+
+      if (!selectedSlot) {
+        setStatus("Choose a time first.", false);
+        return;
+      }
+
+      const slug = getSlug();
+      const formData = new FormData(formEl);
+      const name = String(formData.get("name") || "").trim();
+      const contact = String(formData.get("contact") || "").trim();
+
+      if (!name || !contact) {
+        setStatus("Fill in both name and contact details.", false);
+        return;
+      }
+
+      submitButtonEl.disabled = true;
+      setStatus("Saving booking...", false);
+
+      try {
+        const response = await fetch(config.supabaseUrl + "/rest/v1/rpc/create_booking", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": config.supabaseAnonKey,
+            "Authorization": "Bearer " + config.supabaseAnonKey
+          },
+          body: JSON.stringify({
+            target_slug: slug,
+            requested_date: selectedSlot.available_on,
+            requested_time: selectedSlot.start_time,
+            guest_name: name,
+            guest_contact: contact
+          })
+        });
+
+        if (!response.ok) {
+          const errorPayload = await response.json().catch(() => null);
+          const message = errorPayload && errorPayload.message ? errorPayload.message : "The booking could not be completed.";
+          throw new Error(message);
+        }
+
+        formEl.reset();
+        selectedSlot = null;
+        setStatus("The time has been booked.", true);
+        await fetchOptions();
+      } catch (error) {
+        setStatus(error.message, false);
+      } finally {
+        submitButtonEl.disabled = selectedSlot === null;
+      }
+    }
+
+    function notifyParentHeight() {
+      if (window.parent === window) {
+        return;
+      }
+
+      window.parent.postMessage(
+        {
+          type: "blueflame:embed-resize",
+          height: document.documentElement.scrollHeight
+        },
+        "*"
+      );
+    }
+
+    formEl.addEventListener("submit", submitBooking);
+
+    if ("ResizeObserver" in window) {
+      const resizeObserver = new ResizeObserver(() => {
+        notifyParentHeight();
+      });
+
+      resizeObserver.observe(document.body);
+    } else {
+      window.addEventListener("load", notifyParentHeight);
+      window.addEventListener("resize", notifyParentHeight);
+    }
+
+    fetchOptions().catch((error) => {
+      setOptionsStatus(error.message, false);
+    });
+  </script>
+</body>
+</html>

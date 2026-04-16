@@ -5,45 +5,36 @@ create table public.profiles (
   slug text not null unique check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
   display_name text,
   notification_email text not null,
-  timezone text not null default 'Europe/Copenhagen',
   created_at timestamptz not null default now()
 );
 
-create table public.availability_rules (
+create table public.availability_days (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references public.profiles(id) on delete cascade,
-  weekday smallint not null check (weekday between 0 and 6),
+  available_on date not null,
   start_time time not null,
-  is_active boolean not null default true,
-  created_at timestamptz not null default now()
-);
-
-create table public.blocked_dates (
-  id uuid primary key default gen_random_uuid(),
-  profile_id uuid not null references public.profiles(id) on delete cascade,
-  blocked_on date not null,
   created_at timestamptz not null default now(),
-  unique (profile_id, blocked_on)
+  unique (profile_id, available_on)
 );
 
 create table public.bookings (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references public.profiles(id) on delete cascade,
-  starts_at timestamptz not null,
+  booked_on date not null,
+  start_time time not null,
   guest_name text not null,
   guest_contact text not null,
   created_at timestamptz not null default now(),
-  unique (profile_id, starts_at)
+  unique (profile_id, booked_on)
 );
 
-create index availability_rules_profile_id_idx on public.availability_rules (profile_id);
-create index blocked_dates_profile_id_idx on public.blocked_dates (profile_id);
+create index availability_days_profile_id_idx on public.availability_days (profile_id);
+create index availability_days_available_on_idx on public.availability_days (available_on);
 create index bookings_profile_id_idx on public.bookings (profile_id);
-create index bookings_starts_at_idx on public.bookings (starts_at);
+create index bookings_booked_on_idx on public.bookings (booked_on);
 
 alter table public.profiles enable row level security;
-alter table public.availability_rules enable row level security;
-alter table public.blocked_dates enable row level security;
+alter table public.availability_days enable row level security;
 alter table public.bookings enable row level security;
 
 create or replace function public.handle_new_user()
@@ -99,15 +90,8 @@ to authenticated
 using (auth.uid() = id)
 with check (auth.uid() = id);
 
-create policy "availability_rules_manage_own"
-on public.availability_rules
-for all
-to authenticated
-using (profile_id = auth.uid())
-with check (profile_id = auth.uid());
-
-create policy "blocked_dates_manage_own"
-on public.blocked_dates
+create policy "availability_days_manage_own"
+on public.availability_days
 for all
 to authenticated
 using (profile_id = auth.uid())
@@ -121,7 +105,8 @@ using (profile_id = auth.uid());
 
 create or replace function public.get_public_booking_options(target_slug text)
 returns table (
-  starts_at timestamptz
+  available_on date,
+  start_time time
 )
 language plpgsql
 security definer
@@ -129,7 +114,6 @@ set search_path = public
 as $$
 declare
   profile_record public.profiles%rowtype;
-  local_today date;
   min_day date;
   max_day date;
 begin
@@ -142,34 +126,19 @@ begin
     return;
   end if;
 
-  local_today := (now() at time zone profile_record.timezone)::date;
-  min_day := local_today + 2;
-  max_day := local_today + 14;
+  min_day := current_date + 2;
+  max_day := current_date + 14;
 
   return query
-  with candidate_days as (
-    select generate_series(min_day, max_day, interval '1 day')::date as slot_day
-  ),
-  generated_slots as (
-    select
-      (((candidate_days.slot_day + availability_rules.start_time) at time zone profile_record.timezone)) as starts_at
-    from candidate_days
-    join public.availability_rules
-      on availability_rules.profile_id = profile_record.id
-     and availability_rules.is_active = true
-     and availability_rules.weekday = extract(dow from candidate_days.slot_day)::smallint
-    left join public.blocked_dates
-      on blocked_dates.profile_id = profile_record.id
-     and blocked_dates.blocked_on = candidate_days.slot_day
-    where blocked_dates.id is null
-  )
-  select generated_slots.starts_at
-  from generated_slots
+  select availability_days.available_on, availability_days.start_time
+  from public.availability_days
   left join public.bookings
-    on bookings.profile_id = profile_record.id
-   and bookings.starts_at = generated_slots.starts_at
-  where bookings.id is null
-  order by generated_slots.starts_at asc;
+    on bookings.profile_id = availability_days.profile_id
+   and bookings.booked_on = availability_days.available_on
+  where availability_days.profile_id = profile_record.id
+    and availability_days.available_on between min_day and max_day
+    and bookings.id is null
+  order by availability_days.available_on asc;
 end;
 $$;
 
@@ -177,7 +146,8 @@ grant execute on function public.get_public_booking_options(text) to anon, authe
 
 create or replace function public.create_booking(
   target_slug text,
-  requested_starts_at timestamptz,
+  requested_date date,
+  requested_time time,
   guest_name text,
   guest_contact text
 )
@@ -188,15 +158,13 @@ set search_path = public
 as $$
 declare
   profile_record public.profiles%rowtype;
-  local_today date;
-  requested_local_date date;
 begin
   if coalesce(trim(guest_name), '') = '' then
-    raise exception 'Navn mangler.';
+    raise exception 'Name is required.';
   end if;
 
   if coalesce(trim(guest_contact), '') = '' then
-    raise exception 'Kontakt mangler.';
+    raise exception 'Contact information is required.';
   end if;
 
   select *
@@ -205,51 +173,60 @@ begin
   where slug = target_slug;
 
   if not found then
-    raise exception 'Booking-siden findes ikke.';
+    raise exception 'Booking page was not found.';
   end if;
 
-  local_today := (now() at time zone profile_record.timezone)::date;
-  requested_local_date := (requested_starts_at at time zone profile_record.timezone)::date;
-
-  if requested_local_date < local_today + 2 then
-    raise exception 'Tidspunktet er for taet paa.';
+  if requested_date < current_date + 2 then
+    raise exception 'This date is too soon to book.';
   end if;
 
-  if requested_local_date > local_today + 14 then
-    raise exception 'Tidspunktet ligger for langt ude i fremtiden.';
+  if requested_date > current_date + 14 then
+    raise exception 'This date is outside the booking window.';
   end if;
 
   if not exists (
     select 1
-    from public.get_public_booking_options(target_slug) available
-    where available.starts_at = requested_starts_at
+    from public.availability_days
+    where profile_id = profile_record.id
+      and available_on = requested_date
+      and start_time = requested_time
   ) then
-    raise exception 'Tidspunktet er ikke laengere ledigt.';
+    raise exception 'This time is no longer available.';
   end if;
 
-  insert into public.bookings (profile_id, starts_at, guest_name, guest_contact)
-  values (profile_record.id, requested_starts_at, trim(guest_name), trim(guest_contact));
+  if exists (
+    select 1
+    from public.bookings
+    where profile_id = profile_record.id
+      and booked_on = requested_date
+  ) then
+    raise exception 'This date has already been taken.';
+  end if;
+
+  insert into public.bookings (profile_id, booked_on, start_time, guest_name, guest_contact)
+  values (
+    profile_record.id,
+    requested_date,
+    requested_time,
+    trim(guest_name),
+    trim(guest_contact)
+  );
 
   return jsonb_build_object(
     'ok', true,
-    'starts_at', requested_starts_at
+    'booked_on', requested_date,
+    'start_time', requested_time
   );
 exception
   when unique_violation then
-    raise exception 'Tidspunktet er lige blevet taget.';
+    raise exception 'This date has just been taken.';
 end;
 $$;
 
-grant execute on function public.create_booking(text, timestamptz, text, text) to anon, authenticated;
+grant execute on function public.create_booking(text, date, time, text, text) to anon, authenticated;
 
 comment on function public.get_public_booking_options(text)
-is 'Returns the public booking options generated from recurring availability rules for the next 2-14 days.';
+is 'Returns bookable options for the next rolling 14-day window with a 2-day notice requirement.';
 
-comment on function public.create_booking(text, timestamptz, text, text)
-is 'Creates a booking for a public booking page when the requested slot is still valid and available.';
-
--- Example recurring rules for a newly created profile:
--- insert into public.availability_rules (profile_id, weekday, start_time)
--- select id, 2, '16:00'::time from public.profiles where slug = 'robin-hansen';
--- insert into public.availability_rules (profile_id, weekday, start_time)
--- select id, 4, '18:30'::time from public.profiles where slug = 'robin-hansen';
+comment on function public.create_booking(text, date, time, text, text)
+is 'Creates a booking for a public booking page when the requested day is still available.';
