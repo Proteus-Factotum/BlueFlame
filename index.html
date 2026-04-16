@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robin Hansen</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f0f0f;
+      --text: #f2f2f0;
+      --muted: #b4b4af;
+      --soft: #8d8d87;
+      --underline: rgba(242, 242, 240, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 16px;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 56px 22px 64px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    main {
+      width: 100%;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    h1,
+    h2,
+    p,
+    ul {
+      margin: 0;
+    }
+
+    .hero {
+      display: grid;
+      gap: 18px;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .photo {
+      width: 112px;
+      height: 112px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
+
+    h1 {
+      font-size: clamp(2.1rem, 5vw, 2.85rem);
+      line-height: 1.02;
+      font-weight: 650;
+      letter-spacing: -0.04em;
+    }
+
+    .tagline {
+      margin-top: 8px;
+      color: var(--text);
+      font-size: clamp(1.2rem, 3vw, 1.45rem);
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+
+    section {
+      margin-top: 56px;
+    }
+
+    h2 {
+      display: none;
+    }
+
+    p {
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    ul {
+      padding-left: 18px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    li + li {
+      margin-top: 8px;
+    }
+
+    .cta {
+      margin-top: 64px;
+    }
+
+    .cta p + p {
+      margin-top: 22px;
+    }
+
+    .button {
+      display: inline-block;
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--underline);
+    }
+
+    .button:focus-visible,
+    .button:hover {
+      border-bottom-color: var(--text);
+      outline: none;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 36px 18px 44px;
+      }
+
+      section {
+        margin-top: 44px;
+      }
+
+      .hero {
+        gap: 16px;
+      }
+
+      .photo {
+        width: 96px;
+        height: 96px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <img class="photo" src="your-photo.jpg" alt="Portraet af Robin Hansen">
+      <div>
+        <h1>Robin Hansen</h1>
+        <p class="tagline">Du fangede min opmærksomhed</p>
+      </div>
+    </header>
+
+    <section aria-labelledby="intro-heading">
+      <h2 id="intro-heading">Intro</h2>
+      <p>
+        Jeg foretrækker simple, direkte møder.
+        <br>
+        Hvis du er nysgerrig, så kig lidt rundt.
+        <br>
+        Hvis ikke, er det også helt fint.
+      </p>
+    </section>
+
+    <section aria-labelledby="details-heading">
+      <h2 id="details-heading">Et par ting</h2>
+      <ul>
+        <li>Jeg bor i Nørresundby</li>
+        <li>Bygger systemer og værktøjer</li>
+        <li>De fleste dage går med træning og fokuseret arbejde</li>
+        <li>Kan godt li' struktur</li>
+        <li>Ret nørdet anlagt</li>
+        <li>Kobler gerne af med anime eller dans</li>
+        <li>Værdsætter selvstændighed og retning</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="intent-heading">
+      <h2 id="intent-heading">Intention</h2>
+      <p>
+        Jeg er mest til noget, der føles rigtigt. Ikke det halve.
+      </p>
+    </section>
+
+    <section aria-labelledby="meeting-heading">
+      <h2 id="meeting-heading">Moede</h2>
+      <p>
+        Hvis vi mødes, er det bare te eller en gåtur.
+      </p>
+    </section>
+
+    <section class="cta" aria-labelledby="cta-heading">
+      <h2 id="cta-heading">Naeste</h2>
+      <p>
+        Skriv hvis du har lyst.
+        <br>
+        +45 71 83 21 17
+      </p>
+      <p>
+        Eller find et tidspunkt her.
+        <br>
+        <a class="button" href="booking.html?slug=robin-hansen">booking</a>
+      </p>
+    </section>
+  </main>
+</body>
+</html>
