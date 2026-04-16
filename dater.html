@@ -795,6 +795,8 @@
     let selectedDate = null;
     let localTestingState = createLocalTestingState();
     let draftTestingState = cloneTestingState(localTestingState);
+    let persistedAvailabilityState = createPersistedAvailabilityState();
+    let draftAvailabilityState = clonePersistedAvailabilityState(persistedAvailabilityState);
     let selectedTimeDraft = "";
     let isSavingInline = false;
     const visibleWindowStartOffset = 2;
@@ -834,20 +836,82 @@
       };
     }
 
+    function createPersistedAvailabilityState() {
+      return {
+        automations: [],
+        manualOverrides: {}
+      };
+    }
+
     function cloneTestingState(state) {
       return JSON.parse(JSON.stringify(state));
     }
 
-    function getWorkingTestingState() {
-      return isDummySessionEnabled ? draftTestingState : localTestingState;
+    function clonePersistedAvailabilityState(state) {
+      return JSON.parse(JSON.stringify(state));
     }
 
     function isDraftDirty() {
-      if (!isDummySessionEnabled) {
-        return false;
+      if (isDummySessionEnabled) {
+        return JSON.stringify(draftTestingState) !== JSON.stringify(localTestingState);
       }
 
-      return JSON.stringify(draftTestingState) !== JSON.stringify(localTestingState);
+      return JSON.stringify(draftAvailabilityState) !== JSON.stringify(persistedAvailabilityState);
+    }
+
+    function getDraftAvailabilityState() {
+      return isDummySessionEnabled ? draftTestingState : draftAvailabilityState;
+    }
+
+    function getPersistedAvailabilityState() {
+      return isDummySessionEnabled ? localTestingState : persistedAvailabilityState;
+    }
+
+    function normalizeAutomationDrafts(automationList) {
+      return (automationList || [])
+        .map(function (item, index) {
+          const normalizedTime = normalizeTimeInput(item.start_time);
+          const normalizedWeekdays = Array.isArray(item.weekdays)
+            ? Array.from(new Set(item.weekdays.filter(function (weekdayValue) {
+                return Number.isInteger(weekdayValue) && weekdayValue >= 0 && weekdayValue <= 6;
+              }))).sort(function (a, b) { return a - b; })
+            : [];
+
+          return {
+            id: item.id || "auto-" + index,
+            start_time: normalizedTime,
+            weekdays: normalizedWeekdays
+          };
+        })
+        .filter(function (item) {
+          return item.start_time && item.weekdays.length;
+        });
+    }
+
+    function normalizeManualOverrides(overrides) {
+      const normalized = {};
+
+      for (const dateString of Object.keys(overrides || {})) {
+        const item = overrides[dateString];
+        if (!item || !dateString) {
+          continue;
+        }
+
+        if (item.action === "clear") {
+          normalized[dateString] = { action: "clear" };
+          continue;
+        }
+
+        const normalizedTime = normalizeTimeInput(item.start_time);
+        if (item.action === "set" && normalizedTime) {
+          normalized[dateString] = {
+            action: "set",
+            start_time: normalizedTime
+          };
+        }
+      }
+
+      return normalized;
     }
 
     function refreshSaveButtonState() {
@@ -980,10 +1044,38 @@
       return nextAvailability;
     }
 
+    function renderDashboardState() {
+      const draftState = getDraftAvailabilityState();
+
+      availabilityByDate = buildAvailabilityFromAutomations(
+        windowDates,
+        draftState.automations,
+        draftState.manualOverrides
+      );
+
+      if (isDummySessionEnabled) {
+        profilePillEl.textContent = (activeProfile.display_name || activeProfile.slug || "Profile").trim() + " - local testing";
+      } else {
+        profilePillEl.textContent = (activeProfile.display_name || activeProfile.slug || "Profile").trim();
+      }
+
+      if (selectedDate && !windowDates.includes(selectedDate)) {
+        selectedDate = windowDates[0] || null;
+      }
+
+      syncSelectedDraft();
+      renderAutomations();
+      renderDayStrip();
+      renderUpcomingList();
+      renderHeldList();
+      refreshSaveButtonState();
+    }
+
     function preserveVisibleWindowAvailability() {
       const currentWindow = buildWindowDates();
-      const currentOverrides = Object.assign({}, draftTestingState.manualOverrides || {});
-      const currentAutomations = draftTestingState.automations.slice();
+      const draftState = getDraftAvailabilityState();
+      const currentOverrides = Object.assign({}, draftState.manualOverrides || {});
+      const currentAutomations = draftState.automations.slice();
       const currentAvailability = buildAvailabilityFromAutomations(currentWindow, currentAutomations, currentOverrides);
 
       for (const dateString of currentWindow) {
@@ -999,34 +1091,26 @@
         };
       }
 
-      draftTestingState.manualOverrides = currentOverrides;
+      draftState.manualOverrides = currentOverrides;
     }
 
     function preserveCurrentWindowForRemovedAutomation(automationId) {
       preserveVisibleWindowAvailability();
-      const currentAutomations = draftTestingState.automations.slice();
+      const draftState = getDraftAvailabilityState();
+      const currentAutomations = draftState.automations.slice();
       const nextAutomations = currentAutomations.filter(function (item) {
         return item.id !== automationId;
       });
 
-      draftTestingState.automations = nextAutomations;
+      draftState.automations = nextAutomations;
     }
 
     function renderAutomations() {
       automationsListEl.innerHTML = "";
-
-      if (!isDummySessionEnabled) {
-        const copyEl = document.createElement("p");
-        copyEl.className = "empty";
-        copyEl.textContent = "Automation editing is wired for local testing right now and still needs the backend migration.";
-        automationsListEl.appendChild(copyEl);
-        addAutomationButtonEl.disabled = true;
-        return;
-      }
-
+      const draftState = getDraftAvailabilityState();
       addAutomationButtonEl.disabled = false;
 
-      for (const automation of draftTestingState.automations) {
+      for (const automation of draftState.automations) {
         const itemEl = document.createElement("article");
         itemEl.className = "automation-item";
 
@@ -1037,7 +1121,7 @@
         removeButtonEl.addEventListener("click", function () {
           preserveCurrentWindowForRemovedAutomation(automation.id);
           setStatus(automationStatusEl, "", false);
-          loadDashboard();
+          renderDashboardState();
         });
 
         const rowEl = document.createElement("div");
@@ -1056,13 +1140,13 @@
         });
         timeInputEl.addEventListener("blur", function () {
           automation.start_time = normalizeTimeInput(automation.start_time) || automation.start_time;
-          loadDashboard();
+          renderDashboardState();
         });
 
         const weekdayWrapEl = document.createElement("div");
         weekdayWrapEl.className = "weekday-pills";
         const claimedWeekdays = new Set(
-          draftTestingState.automations
+          draftState.automations
             .filter(function (item) {
               return item.id !== automation.id;
             })
@@ -1097,12 +1181,12 @@
               automation.weekdays = nextWeekdays.filter(function (weekdayValue) {
                 return weekdayValue !== option.value;
               });
-              loadDashboard();
+              renderDashboardState();
               return;
             }
 
             automation.weekdays = nextWeekdays;
-            loadDashboard();
+            renderDashboardState();
           });
           weekdayWrapEl.appendChild(weekdayButtonEl);
         }
@@ -1299,29 +1383,12 @@
         const automationHorizonDates = buildAutomationHorizonDates();
         windowDates = automationHorizonDates.slice();
         selectedDate = selectedDate || windowDates[0] || null;
-        const horizonAvailability = buildAvailabilityFromAutomations(
-          automationHorizonDates,
-          draftTestingState.automations,
-          draftTestingState.manualOverrides
-        );
-        availabilityByDate = Object.assign({}, horizonAvailability);
         bookingsByDate = {};
 
         for (const item of draftTestingState.heldDates) {
           bookingsByDate[item.booked_on] = Object.assign({}, item);
         }
-
-        profilePillEl.textContent = (activeProfile.display_name || activeProfile.slug || "Profile").trim() + " - local testing";
-        if (selectedDate && !windowDates.includes(selectedDate)) {
-          selectedDate = windowDates[0] || null;
-        }
-
-        syncSelectedDraft();
-        renderAutomations();
-        renderDayStrip();
-        renderUpcomingList();
-        renderHeldList();
-        refreshSaveButtonState();
+        renderDashboardState();
         return;
       }
 
@@ -1344,91 +1411,83 @@
       windowDates = buildWindowDates();
       selectedDate = selectedDate || windowDates[0] || null;
 
-      const windowStart = windowDates[0];
-      const windowEnd = windowDates[windowDates.length - 1];
-
-      const [{ data: availabilityDays, error: availabilityError }, { data: bookings, error: bookingsError }] = await Promise.all([
+      const automationHorizonDates = buildAutomationHorizonDates();
+      const horizonStart = automationHorizonDates[0];
+      const horizonEnd = automationHorizonDates[automationHorizonDates.length - 1];
+      const [{ data: automations, error: automationsError }, { data: overrides, error: overridesError }, { data: bookings, error: bookingsError }] = await Promise.all([
         supabaseClient
-          .from("availability_days")
-          .select("id, available_on, start_time")
-          .gte("available_on", windowStart)
-          .lte("available_on", windowEnd)
+          .from("availability_automations")
+          .select("id, start_time, weekdays")
+          .eq("profile_id", activeProfile.id)
+          .order("created_at", { ascending: true }),
+        supabaseClient
+          .from("availability_overrides")
+          .select("available_on, action, start_time")
+          .eq("profile_id", activeProfile.id)
+          .gte("available_on", horizonStart)
+          .lte("available_on", horizonEnd)
           .order("available_on", { ascending: true }),
         supabaseClient
           .from("bookings")
           .select("id, booked_on, start_time, guest_name, guest_contact")
-          .gte("booked_on", windowStart)
+          .gte("booked_on", buildWindowDates()[0])
           .order("booked_on", { ascending: true })
       ]);
 
-      if (availabilityError || bookingsError) {
+      if (automationsError || overridesError || bookingsError) {
         throw new Error(
-          availabilityError?.message ||
+          automationsError?.message ||
+          overridesError?.message ||
           bookingsError?.message ||
           "Could not load availability."
         );
       }
 
-      availabilityByDate = {};
       bookingsByDate = {};
+      persistedAvailabilityState = createPersistedAvailabilityState();
+      persistedAvailabilityState.automations = (automations || []).map(function (item, index) {
+        return {
+          id: item.id || "persisted-" + index,
+          start_time: String(item.start_time || "").slice(0, 5),
+          weekdays: Array.isArray(item.weekdays) ? item.weekdays.slice().sort(function (a, b) { return a - b; }) : []
+        };
+      });
+      persistedAvailabilityState.manualOverrides = {};
 
-      for (const item of availabilityDays || []) {
-        availabilityByDate[item.available_on] = item;
+      for (const item of overrides || []) {
+        if (item.action === "clear") {
+          persistedAvailabilityState.manualOverrides[item.available_on] = { action: "clear" };
+          continue;
+        }
+
+        persistedAvailabilityState.manualOverrides[item.available_on] = {
+          action: "set",
+          start_time: String(item.start_time || "").slice(0, 5)
+        };
       }
+
+      draftAvailabilityState = clonePersistedAvailabilityState(persistedAvailabilityState);
 
       for (const item of bookings || []) {
         bookingsByDate[item.booked_on] = item;
       }
 
-      profilePillEl.textContent = (profileData.display_name || profileData.slug || "Profile").trim();
-      if (selectedDate && !windowDates.includes(selectedDate)) {
-        selectedDate = windowDates[0] || null;
-      }
-
-      syncSelectedDraft();
-      renderAutomations();
-      renderDayStrip();
-      renderUpcomingList();
-      renderHeldList();
-      refreshSaveButtonState();
+      renderDashboardState();
     }
 
     async function saveAvailabilityForDate(dateString, startTime) {
-      if (!dateString || !activeProfile) {
+      if (!dateString) {
         return;
       }
 
-      if (isDummySessionEnabled) {
-        draftTestingState.manualOverrides[dateString] = {
-          action: "set",
-          start_time: startTime
-        };
+      const draftState = getDraftAvailabilityState();
+      draftState.manualOverrides[dateString] = {
+        action: "set",
+        start_time: startTime
+      };
 
-        setStatus(availabilityStatusEl, "", false);
-        await loadDashboard();
-        return;
-      }
-
-      try {
-        const { error } = await supabaseClient
-          .from("availability_days")
-          .upsert({
-            profile_id: activeProfile.id,
-            available_on: dateString,
-            start_time: startTime
-          }, {
-            onConflict: "profile_id,available_on"
-          });
-
-        if (error) {
-          throw error;
-        }
-
-        setStatus(availabilityStatusEl, "", false);
-        await loadDashboard();
-      } catch (error) {
-        setStatus(availabilityStatusEl, error.message || "Could not save this day.", false);
-      }
+      setStatus(availabilityStatusEl, "", false);
+      renderDashboardState();
     }
 
     async function clearAvailabilityForDate(dateString) {
@@ -1441,28 +1500,10 @@
         return;
       }
 
-      if (isDummySessionEnabled) {
-        draftTestingState.manualOverrides[dateString] = { action: "clear" };
-        setStatus(availabilityStatusEl, "", false);
-        await loadDashboard();
-        return;
-      }
-
-      try {
-        const { error } = await supabaseClient
-          .from("availability_days")
-          .delete()
-          .eq("id", existing.id);
-
-        if (error) {
-          throw error;
-        }
-
-        setStatus(availabilityStatusEl, "", false);
-        await loadDashboard();
-      } catch (error) {
-        setStatus(availabilityStatusEl, error.message || "Could not clear this day.", false);
-      }
+      const draftState = getDraftAvailabilityState();
+      draftState.manualOverrides[dateString] = { action: "clear" };
+      setStatus(availabilityStatusEl, "", false);
+      renderDashboardState();
     }
 
     async function commitSelectedTime() {
@@ -1502,6 +1543,126 @@
       selectedTimeDraft = normalized;
       await saveAvailabilityForDate(selectedDate, normalized);
       isSavingInline = false;
+    }
+
+    async function saveDraftAvailabilityState() {
+      if (isDummySessionEnabled) {
+        localTestingState = cloneTestingState(draftTestingState);
+        setStatus(automationStatusEl, "Draft saved. Client-facing availability is now updated.", true);
+        await loadDashboard();
+        return;
+      }
+
+      if (!activeProfile || !supabaseClient) {
+        setStatus(automationStatusEl, "Could not save availability.", false);
+        return;
+      }
+
+      const normalizedAutomations = normalizeAutomationDrafts(draftAvailabilityState.automations);
+      const normalizedOverrides = normalizeManualOverrides(draftAvailabilityState.manualOverrides);
+      const horizonDates = buildAutomationHorizonDates();
+      const nextAvailability = buildAvailabilityFromAutomations(
+        horizonDates,
+        normalizedAutomations,
+        normalizedOverrides
+      );
+      const overrideRows = Object.keys(normalizedOverrides).map(function (dateString) {
+        const item = normalizedOverrides[dateString];
+        return {
+          profile_id: activeProfile.id,
+          available_on: dateString,
+          action: item.action,
+          start_time: item.action === "set" ? item.start_time : null
+        };
+      });
+      const availabilityRows = Object.keys(nextAvailability).map(function (dateString) {
+        const item = nextAvailability[dateString];
+        return {
+          profile_id: activeProfile.id,
+          available_on: dateString,
+          start_time: item.start_time
+        };
+      });
+      const horizonStart = horizonDates[0];
+      const horizonEnd = horizonDates[horizonDates.length - 1];
+
+      saveAvailabilityButtonEl.disabled = true;
+      setStatus(automationStatusEl, "Saving availability...", false);
+
+      try {
+        const { error: deleteAutomationsError } = await supabaseClient
+          .from("availability_automations")
+          .delete()
+          .eq("profile_id", activeProfile.id);
+
+        if (deleteAutomationsError) {
+          throw deleteAutomationsError;
+        }
+
+        if (normalizedAutomations.length) {
+          const { error: insertAutomationsError } = await supabaseClient
+            .from("availability_automations")
+            .insert(normalizedAutomations.map(function (item) {
+              return {
+                profile_id: activeProfile.id,
+                start_time: item.start_time,
+                weekdays: item.weekdays
+              };
+            }));
+
+          if (insertAutomationsError) {
+            throw insertAutomationsError;
+          }
+        }
+
+        const { error: deleteOverridesError } = await supabaseClient
+          .from("availability_overrides")
+          .delete()
+          .eq("profile_id", activeProfile.id)
+          .gte("available_on", horizonStart)
+          .lte("available_on", horizonEnd);
+
+        if (deleteOverridesError) {
+          throw deleteOverridesError;
+        }
+
+        if (overrideRows.length) {
+          const { error: insertOverridesError } = await supabaseClient
+            .from("availability_overrides")
+            .insert(overrideRows);
+
+          if (insertOverridesError) {
+            throw insertOverridesError;
+          }
+        }
+
+        const { error: deleteAvailabilityError } = await supabaseClient
+          .from("availability_days")
+          .delete()
+          .eq("profile_id", activeProfile.id)
+          .gte("available_on", horizonStart)
+          .lte("available_on", horizonEnd);
+
+        if (deleteAvailabilityError) {
+          throw deleteAvailabilityError;
+        }
+
+        if (availabilityRows.length) {
+          const { error: insertAvailabilityError } = await supabaseClient
+            .from("availability_days")
+            .insert(availabilityRows);
+
+          if (insertAvailabilityError) {
+            throw insertAvailabilityError;
+          }
+        }
+
+        setStatus(automationStatusEl, "Availability saved.", true);
+        await loadDashboard();
+      } catch (error) {
+        setStatus(automationStatusEl, error.message || "Could not save availability.", false);
+        refreshSaveButtonState();
+      }
     }
 
     async function handleLogin(event) {
@@ -1632,28 +1793,16 @@
       window.requestAnimationFrame(updateDayStripControls);
     });
     addAutomationButtonEl.addEventListener("click", function () {
-      if (!isDummySessionEnabled) {
-        setStatus(automationStatusEl, "Automation editing still needs the backend migration.", false);
-        return;
-      }
-
-      draftTestingState.automations.push({
+      getDraftAvailabilityState().automations.push({
         id: "auto-" + Date.now(),
         start_time: "",
         weekdays: []
       });
       setStatus(automationStatusEl, "", false);
-      loadDashboard();
+      renderDashboardState();
     });
     saveAvailabilityButtonEl.addEventListener("click", function () {
-      if (isDummySessionEnabled) {
-        localTestingState = cloneTestingState(draftTestingState);
-        setStatus(automationStatusEl, "Draft saved. Client-facing availability is now updated.", true);
-        loadDashboard();
-        return;
-      }
-
-      setStatus(automationStatusEl, "Save still needs the backend persistence layer.", false);
+      saveDraftAvailabilityState();
     });
     signoutButtonEl.addEventListener("click", function () {
       if (isDummySessionEnabled) {

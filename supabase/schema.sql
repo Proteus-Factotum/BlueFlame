@@ -17,6 +17,31 @@ create table public.availability_days (
   unique (profile_id, available_on)
 );
 
+create table public.availability_automations (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  start_time time not null,
+  weekdays smallint[] not null default '{}',
+  created_at timestamptz not null default now(),
+  check (
+    array_position(weekdays, null) is null
+    and weekdays <@ array[0, 1, 2, 3, 4, 5, 6]::smallint[]
+  )
+);
+
+create table public.availability_overrides (
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  available_on date not null,
+  action text not null check (action in ('set', 'clear')),
+  start_time time,
+  created_at timestamptz not null default now(),
+  primary key (profile_id, available_on),
+  check (
+    (action = 'set' and start_time is not null)
+    or (action = 'clear' and start_time is null)
+  )
+);
+
 create table public.bookings (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references public.profiles(id) on delete cascade,
@@ -30,11 +55,16 @@ create table public.bookings (
 
 create index availability_days_profile_id_idx on public.availability_days (profile_id);
 create index availability_days_available_on_idx on public.availability_days (available_on);
+create index availability_automations_profile_id_idx on public.availability_automations (profile_id);
+create index availability_overrides_profile_id_idx on public.availability_overrides (profile_id);
+create index availability_overrides_available_on_idx on public.availability_overrides (available_on);
 create index bookings_profile_id_idx on public.bookings (profile_id);
 create index bookings_booked_on_idx on public.bookings (booked_on);
 
 alter table public.profiles enable row level security;
 alter table public.availability_days enable row level security;
+alter table public.availability_automations enable row level security;
+alter table public.availability_overrides enable row level security;
 alter table public.bookings enable row level security;
 
 create or replace function public.handle_new_user()
@@ -92,6 +122,20 @@ with check (auth.uid() = id);
 
 create policy "availability_days_manage_own"
 on public.availability_days
+for all
+to authenticated
+using (profile_id = auth.uid())
+with check (profile_id = auth.uid());
+
+create policy "availability_automations_manage_own"
+on public.availability_automations
+for all
+to authenticated
+using (profile_id = auth.uid())
+with check (profile_id = auth.uid());
+
+create policy "availability_overrides_manage_own"
+on public.availability_overrides
 for all
 to authenticated
 using (profile_id = auth.uid())
