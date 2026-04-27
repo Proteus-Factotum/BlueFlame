@@ -308,13 +308,12 @@
     }
 
     .day-card {
-      flex: 0 0 120px;
+      flex: 0 0 116px;
       scroll-snap-align: start;
       display: grid;
-      grid-template-rows: auto auto 1fr;
-      gap: 4px;
-      min-height: 76px;
-      padding: 10px;
+      gap: 6px;
+      min-height: 60px;
+      padding: 7px 8px;
       border-radius: 14px;
       border: 1px solid var(--line);
       background: linear-gradient(180deg, rgba(15, 28, 48, 0.92), rgba(9, 18, 32, 0.96));
@@ -355,8 +354,11 @@
     }
 
     .day-head {
-      display: grid;
-      gap: 2px;
+      display: flex;
+      gap: 6px;
+      align-items: baseline;
+      justify-content: space-between;
+      min-width: 0;
     }
 
     .day-name {
@@ -367,26 +369,30 @@
 
     .day-date {
       color: var(--text);
-      font-size: 0.86rem;
-      line-height: 1.08;
+      min-width: 0;
+      font-size: 0.84rem;
+      line-height: 1;
       letter-spacing: -0.03em;
       font-weight: 600;
+      white-space: nowrap;
     }
 
     .day-time {
+      align-self: center;
+      justify-self: center;
       font-size: 0.9rem;
-      line-height: 1.08;
+      line-height: 1;
       letter-spacing: -0.02em;
       font-weight: 550;
       color: var(--text);
+      text-align: center;
     }
 
     .day-window-label {
-      align-self: end;
-      padding-top: 2px;
-      font-size: 0.68rem;
-      line-height: 1.08;
-      letter-spacing: 0.08em;
+      flex: 0 0 auto;
+      font-size: 0.58rem;
+      line-height: 1;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
     }
 
@@ -569,7 +575,7 @@
       }
 
       .day-card {
-        flex-basis: 116px;
+        flex-basis: 112px;
       }
 
       .automation-row {
@@ -1303,12 +1309,24 @@
           renderDayStrip();
         });
 
-        const headEl = document.createElement("div");
-        headEl.className = "day-head";
-
         const dayDateEl = document.createElement("span");
         dayDateEl.className = "day-date";
         dayDateEl.textContent = formatDayDate(dateString) + " " + formatDayHeading(dateString);
+        const windowLabelEl = availability || isAutomationPreview ? document.createElement("span") : null;
+        if (isAutomationPreview) {
+          windowLabelEl.className = "day-window-label day-window-label-auto";
+          windowLabelEl.textContent = "Auto";
+        } else if (availability) {
+          windowLabelEl.className = "day-window-label day-window-label-live";
+          windowLabelEl.textContent = "Live";
+        }
+
+        const headEl = document.createElement("div");
+        headEl.className = "day-head";
+        headEl.appendChild(dayDateEl);
+        if (windowLabelEl) {
+          headEl.appendChild(windowLabelEl);
+        }
 
         let dayTimeEl = document.createElement("span");
         if (selectedDate === dateString && !booking) {
@@ -1354,21 +1372,8 @@
           dayTimeEl.textContent = availability ? formatTime(availability.start_time) : "--:--";
         }
 
-        const windowLabelEl = availability || isAutomationPreview ? document.createElement("span") : null;
-        if (isAutomationPreview) {
-          windowLabelEl.className = "day-window-label day-window-label-auto";
-          windowLabelEl.textContent = "Auto";
-        } else if (availability) {
-          windowLabelEl.className = "day-window-label day-window-label-live";
-          windowLabelEl.textContent = "Live";
-        }
-
-        headEl.appendChild(dayDateEl);
         cardEl.appendChild(headEl);
         cardEl.appendChild(dayTimeEl);
-        if (windowLabelEl) {
-          cardEl.appendChild(windowLabelEl);
-        }
         dayStripEl.appendChild(cardEl);
 
         if (selectedDate === dateString) {
