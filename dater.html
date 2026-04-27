@@ -1352,20 +1352,21 @@
           dayTimeEl.textContent = availability ? formatTime(availability.start_time) : "--:--";
         }
 
-        const windowLabelEl = document.createElement("span");
-        windowLabelEl.className = "day-window-label";
+        const windowLabelEl = availability || isAutomationPreview ? document.createElement("span") : null;
         if (isAutomationPreview) {
-          windowLabelEl.classList.add("day-window-label-auto");
+          windowLabelEl.className = "day-window-label day-window-label-auto";
           windowLabelEl.textContent = "Auto";
-        } else {
-          windowLabelEl.classList.add("day-window-label-live");
+        } else if (availability) {
+          windowLabelEl.className = "day-window-label day-window-label-live";
           windowLabelEl.textContent = "Live";
         }
 
         headEl.appendChild(dayDateEl);
         cardEl.appendChild(headEl);
         cardEl.appendChild(dayTimeEl);
-        cardEl.appendChild(windowLabelEl);
+        if (windowLabelEl) {
+          cardEl.appendChild(windowLabelEl);
+        }
         dayStripEl.appendChild(cardEl);
 
         if (selectedDate === dateString) {
