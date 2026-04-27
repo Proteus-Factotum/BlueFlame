@@ -1083,6 +1083,7 @@
         const beforeItem = currentAvailability[dateString] || null;
 
         if (!beforeItem) {
+          currentOverrides[dateString] = { action: "clear" };
           continue;
         }
 
