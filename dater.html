@@ -799,6 +799,7 @@
     let draftAvailabilityState = clonePersistedAvailabilityState(persistedAvailabilityState);
     let selectedTimeDraft = "";
     let isSavingInline = false;
+    let isSavingAvailability = false;
     const visibleWindowStartOffset = 2;
     const visibleWindowEndOffset = 14;
     const automationHorizonEndOffset = 26;
@@ -1508,13 +1509,13 @@
 
     async function commitSelectedTime() {
       if (!selectedDate || isSavingInline) {
-        return;
+        return true;
       }
 
       const booking = bookingsByDate[selectedDate] || null;
       if (booking) {
         setStatus(availabilityStatusEl, "Held dates cannot be edited here.", false);
-        return;
+        return false;
       }
 
       const existing = availabilityByDate[selectedDate] || null;
@@ -1523,29 +1524,54 @@
       if (!selectedTimeDraft.trim()) {
         if (existing) {
           isSavingInline = true;
-          await clearAvailabilityForDate(selectedDate);
-          isSavingInline = false;
+          try {
+            await clearAvailabilityForDate(selectedDate);
+          } finally {
+            isSavingInline = false;
+          }
         }
-        return;
+        return true;
       }
 
       if (!normalized) {
         setStatus(availabilityStatusEl, "Enter time as HH:MM.", false);
-        return;
+        return false;
       }
 
       if (existing && String(existing.start_time).slice(0, 5) === normalized) {
         selectedTimeDraft = normalized;
-        return;
+        return true;
       }
 
       isSavingInline = true;
       selectedTimeDraft = normalized;
-      await saveAvailabilityForDate(selectedDate, normalized);
-      isSavingInline = false;
+      try {
+        await saveAvailabilityForDate(selectedDate, normalized);
+      } finally {
+        isSavingInline = false;
+      }
+      return true;
+    }
+
+    async function prepareInlineEditForSave() {
+      if (!document.activeElement || !document.activeElement.classList.contains("day-time-input")) {
+        return true;
+      }
+
+      return commitSelectedTime();
     }
 
     async function saveDraftAvailabilityState() {
+      if (isSavingAvailability) {
+        return;
+      }
+
+      const canSave = await prepareInlineEditForSave();
+      if (!canSave) {
+        refreshSaveButtonState();
+        return;
+      }
+
       if (isDummySessionEnabled) {
         localTestingState = cloneTestingState(draftTestingState);
         setStatus(automationStatusEl, "Draft saved. Client-facing availability is now updated.", true);
@@ -1586,6 +1612,7 @@
       const horizonStart = horizonDates[0];
       const horizonEnd = horizonDates[horizonDates.length - 1];
 
+      isSavingAvailability = true;
       saveAvailabilityButtonEl.disabled = true;
       setStatus(automationStatusEl, "Saving availability...", false);
 
@@ -1662,6 +1689,8 @@
       } catch (error) {
         setStatus(automationStatusEl, error.message || "Could not save availability.", false);
         refreshSaveButtonState();
+      } finally {
+        isSavingAvailability = false;
       }
     }
 
