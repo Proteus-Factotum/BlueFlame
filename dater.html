@@ -915,6 +915,30 @@
       return normalized;
     }
 
+    function compactManualOverridesForSave(overrides, automationList, horizonDateList) {
+      const horizonDates = new Set(horizonDateList || []);
+      const automationAvailability = buildAvailabilityFromAutomations(horizonDateList, automationList, {});
+      const compacted = {};
+
+      for (const dateString of Object.keys(overrides || {})) {
+        const item = overrides[dateString];
+        if (!item || !horizonDates.has(dateString)) {
+          continue;
+        }
+
+        if (item.action === "set") {
+          compacted[dateString] = item;
+          continue;
+        }
+
+        if (item.action === "clear" && automationAvailability[dateString]) {
+          compacted[dateString] = item;
+        }
+      }
+
+      return compacted;
+    }
+
     function refreshSaveButtonState() {
       const isDirty = isDraftDirty();
       saveAvailabilityButtonEl.disabled = !isDirty;
@@ -1072,7 +1096,8 @@
       refreshSaveButtonState();
     }
 
-    function preserveVisibleWindowAvailability() {
+    function preserveVisibleWindowAvailability(options) {
+      const shouldPreserveEmptyDays = Boolean(options && options.preserveEmptyDays);
       const currentWindow = buildWindowDates();
       const draftState = getDraftAvailabilityState();
       const currentOverrides = Object.assign({}, draftState.manualOverrides || {});
@@ -1083,7 +1108,9 @@
         const beforeItem = currentAvailability[dateString] || null;
 
         if (!beforeItem) {
-          currentOverrides[dateString] = { action: "clear" };
+          if (shouldPreserveEmptyDays) {
+            currentOverrides[dateString] = { action: "clear" };
+          }
           continue;
         }
 
@@ -1172,14 +1199,15 @@
           }
           weekdayButtonEl.textContent = option.label;
           weekdayButtonEl.addEventListener("click", function () {
-            preserveVisibleWindowAvailability();
             const nextWeekdays = Array.isArray(automation.weekdays) ? automation.weekdays.slice() : [];
             if (nextWeekdays.indexOf(option.value) === -1) {
               if (claimedWeekdays.has(option.value)) {
                 return;
               }
+              preserveVisibleWindowAvailability({ preserveEmptyDays: true });
               nextWeekdays.push(option.value);
             } else {
+              preserveVisibleWindowAvailability();
               automation.weekdays = nextWeekdays.filter(function (weekdayValue) {
                 return weekdayValue !== option.value;
               });
@@ -1608,8 +1636,12 @@
       }
 
       const normalizedAutomations = normalizeAutomationDrafts(draftAvailabilityState.automations);
-      const normalizedOverrides = normalizeManualOverrides(draftAvailabilityState.manualOverrides);
       const horizonDates = buildAutomationHorizonDates();
+      const normalizedOverrides = compactManualOverridesForSave(
+        normalizeManualOverrides(draftAvailabilityState.manualOverrides),
+        normalizedAutomations,
+        horizonDates
+      );
       const nextAvailability = buildAvailabilityFromAutomations(
         horizonDates,
         normalizedAutomations,
