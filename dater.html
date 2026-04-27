@@ -344,6 +344,15 @@
       box-shadow: 0 0 0 1px rgba(212, 140, 255, 0.08) inset;
     }
 
+    .day-card.automation-preview {
+      border-style: dashed;
+    }
+
+    .day-card.automation-preview.available {
+      background: linear-gradient(180deg, rgba(18, 79, 82, 0.9), rgba(10, 42, 55, 0.98));
+      border-color: rgba(127, 212, 255, 0.46);
+    }
+
     .day-head {
       display: grid;
       gap: 0;
@@ -369,6 +378,15 @@
       letter-spacing: -0.02em;
       font-weight: 550;
       color: var(--text);
+    }
+
+    .day-window-label {
+      margin-top: 4px;
+      color: var(--success);
+      font-size: 0.68rem;
+      line-height: 1;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
     .day-time-input {
@@ -1011,6 +1029,11 @@
       return buildDateRange(visibleWindowStartOffset, automationHorizonEndOffset);
     }
 
+    function getVisibleWindowEndDate() {
+      const visibleWindowDates = buildWindowDates();
+      return visibleWindowDates[visibleWindowDates.length - 1] || "";
+    }
+
     function getWeekdayValue(dateString) {
       return new Date(dateString + "T12:00:00Z").getUTCDay();
     }
@@ -1231,10 +1254,12 @@
 
     function renderDayStrip() {
       dayStripEl.innerHTML = "";
+      const visibleWindowEndDate = getVisibleWindowEndDate();
 
       for (const dateString of windowDates) {
         const availability = availabilityByDate[dateString] || null;
         const booking = bookingsByDate[dateString] || null;
+        const isAutomationPreview = visibleWindowEndDate && dateString > visibleWindowEndDate;
         const cardEl = document.createElement("div");
         cardEl.tabIndex = 0;
         cardEl.role = "button";
@@ -1248,6 +1273,9 @@
         }
         if (booking) {
           cardEl.classList.add("held");
+        }
+        if (isAutomationPreview) {
+          cardEl.classList.add("automation-preview");
         }
 
         cardEl.addEventListener("click", function () {
@@ -1317,9 +1345,16 @@
           dayTimeEl.textContent = availability ? formatTime(availability.start_time) : "--:--";
         }
 
+        const windowLabelEl = document.createElement("span");
+        windowLabelEl.className = "day-window-label";
+        windowLabelEl.textContent = "Auto";
+
         headEl.appendChild(dayDateEl);
         cardEl.appendChild(headEl);
         cardEl.appendChild(dayTimeEl);
+        if (isAutomationPreview) {
+          cardEl.appendChild(windowLabelEl);
+        }
         dayStripEl.appendChild(cardEl);
 
         if (selectedDate === dateString) {
@@ -1453,7 +1488,7 @@
       }
 
       activeProfile = profileData;
-      windowDates = buildWindowDates();
+      windowDates = buildAutomationHorizonDates();
       selectedDate = selectedDate || windowDates[0] || null;
 
       const automationHorizonDates = buildAutomationHorizonDates();
