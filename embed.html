@@ -405,29 +405,14 @@
       return String(timeString).slice(0, 5);
     }
 
-    function getEarliestSlot(slots) {
-      if (!Array.isArray(slots) || !slots.length) {
-        return null;
-      }
-
-      return slots.slice().sort((slotA, slotB) => {
-        const slotAValue = slotA.available_on + "T" + String(slotA.start_time).slice(0, 5);
-        const slotBValue = slotB.available_on + "T" + String(slotB.start_time).slice(0, 5);
-        return slotAValue.localeCompare(slotBValue);
-      })[0];
-    }
-
     function renderOptions(slots) {
-      const earliestSlot = getEarliestSlot(slots);
-      const visibleSlots = earliestSlot ? [earliestSlot] : [];
-
       optionsEl.innerHTML = "";
       selectedSlot = null;
       submitButtonEl.disabled = true;
-      emptyMessageEl.classList.toggle("hidden", visibleSlots.length !== 0);
-      setOptionsStatus(visibleSlots.length ? "Earliest open day." : "", false);
+      emptyMessageEl.classList.toggle("hidden", slots.length !== 0);
+      setOptionsStatus(slots.length ? slots.length + " open days." : "", false);
 
-      for (const slot of visibleSlots) {
+      for (const slot of slots) {
         const labelEl = document.createElement("label");
         labelEl.className = "option";
 

@@ -188,6 +188,8 @@ $$;
 
 grant execute on function public.get_public_booking_options(text) to anon, authenticated;
 
+drop function if exists public.get_earliest_public_booking_option(text);
+
 create or replace function public.create_booking(
   target_slug text,
   requested_date date,
