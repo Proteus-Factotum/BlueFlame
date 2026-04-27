@@ -418,11 +418,16 @@
     }
 
     function renderOptions(slots) {
-      optionsEl.innerHTML = "";
-      emptyMessageEl.classList.toggle("hidden", slots.length !== 0);
-      setOptionsStatus(slots.length ? "Earliest open day." : "", false);
+      const earliestSlot = getEarliestSlot(slots);
+      const visibleSlots = earliestSlot ? [earliestSlot] : [];
 
-      for (const slot of slots) {
+      optionsEl.innerHTML = "";
+      selectedSlot = null;
+      submitButtonEl.disabled = true;
+      emptyMessageEl.classList.toggle("hidden", visibleSlots.length !== 0);
+      setOptionsStatus(visibleSlots.length ? "Earliest open day." : "", false);
+
+      for (const slot of visibleSlots) {
         const labelEl = document.createElement("label");
         labelEl.className = "option";
 
@@ -497,8 +502,7 @@
       }
 
       const slots = await response.json();
-      const earliestSlot = getEarliestSlot(slots);
-      renderOptions(earliestSlot ? [earliestSlot] : []);
+      renderOptions(slots);
     }
 
     async function submitBooking(event) {
