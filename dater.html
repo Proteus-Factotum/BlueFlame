@@ -1206,8 +1206,9 @@
       for (const dateString of windowDates) {
         const availability = availabilityByDate[dateString] || null;
         const booking = bookingsByDate[dateString] || null;
-        const cardEl = document.createElement("button");
-        cardEl.type = "button";
+        const cardEl = document.createElement("div");
+        cardEl.tabIndex = 0;
+        cardEl.role = "button";
         cardEl.className = "day-card";
 
         if (selectedDate === dateString) {
@@ -1221,6 +1222,16 @@
         }
 
         cardEl.addEventListener("click", function () {
+          selectedDate = dateString;
+          selectedTimeDraft = availability ? String(availability.start_time).slice(0, 5) : "";
+          renderDayStrip();
+        });
+        cardEl.addEventListener("keydown", function (event) {
+          if (event.key !== "Enter" && event.key !== " ") {
+            return;
+          }
+
+          event.preventDefault();
           selectedDate = dateString;
           selectedTimeDraft = availability ? String(availability.start_time).slice(0, 5) : "";
           renderDayStrip();
@@ -1241,8 +1252,12 @@
           inputEl.inputMode = "numeric";
           inputEl.placeholder = "HH:MM";
           inputEl.value = selectedTimeDraft;
+          inputEl.dataset.date = dateString;
           inputEl.setAttribute("aria-label", "Set time for " + formatDayDate(dateString) + " " + formatDayHeading(dateString));
           inputEl.addEventListener("click", function (event) {
+            event.stopPropagation();
+          });
+          inputEl.addEventListener("keydown", function (event) {
             event.stopPropagation();
           });
           inputEl.addEventListener("input", function (event) {
@@ -1253,15 +1268,15 @@
           inputEl.addEventListener("keydown", function (event) {
             if (event.key === "Enter") {
               event.preventDefault();
-              commitSelectedTime();
+              commitSelectedTime(dateString, event.target.value);
             }
             if (event.key === "Escape") {
               selectedTimeDraft = availability ? String(availability.start_time).slice(0, 5) : "";
               renderDayStrip();
             }
           });
-          inputEl.addEventListener("blur", function () {
-            commitSelectedTime();
+          inputEl.addEventListener("blur", function (event) {
+            commitSelectedTime(dateString, event.target.value);
           });
           dayTimeEl = inputEl;
           window.requestAnimationFrame(function () {
@@ -1507,25 +1522,28 @@
       renderDashboardState();
     }
 
-    async function commitSelectedTime() {
-      if (!selectedDate || isSavingInline) {
+    async function commitSelectedTime(dateString, timeDraft) {
+      const targetDate = dateString || selectedDate;
+      const targetDraft = timeDraft === undefined ? selectedTimeDraft : timeDraft;
+
+      if (!targetDate || isSavingInline) {
         return true;
       }
 
-      const booking = bookingsByDate[selectedDate] || null;
+      const booking = bookingsByDate[targetDate] || null;
       if (booking) {
         setStatus(availabilityStatusEl, "Held dates cannot be edited here.", false);
         return false;
       }
 
-      const existing = availabilityByDate[selectedDate] || null;
-      const normalized = normalizeTimeInput(selectedTimeDraft);
+      const existing = availabilityByDate[targetDate] || null;
+      const normalized = normalizeTimeInput(targetDraft);
 
-      if (!selectedTimeDraft.trim()) {
+      if (!String(targetDraft || "").trim()) {
         if (existing) {
           isSavingInline = true;
           try {
-            await clearAvailabilityForDate(selectedDate);
+            await clearAvailabilityForDate(targetDate);
           } finally {
             isSavingInline = false;
           }
@@ -1539,14 +1557,18 @@
       }
 
       if (existing && String(existing.start_time).slice(0, 5) === normalized) {
-        selectedTimeDraft = normalized;
+        if (targetDate === selectedDate) {
+          selectedTimeDraft = normalized;
+        }
         return true;
       }
 
       isSavingInline = true;
-      selectedTimeDraft = normalized;
+      if (targetDate === selectedDate) {
+        selectedTimeDraft = normalized;
+      }
       try {
-        await saveAvailabilityForDate(selectedDate, normalized);
+        await saveAvailabilityForDate(targetDate, normalized);
       } finally {
         isSavingInline = false;
       }
@@ -1558,7 +1580,7 @@
         return true;
       }
 
-      return commitSelectedTime();
+      return commitSelectedTime(document.activeElement.dataset.date || selectedDate, document.activeElement.value);
     }
 
     async function saveDraftAvailabilityState() {
