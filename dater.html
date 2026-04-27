@@ -382,11 +382,18 @@
 
     .day-window-label {
       margin-top: 4px;
-      color: var(--success);
       font-size: 0.68rem;
       line-height: 1;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+    }
+
+    .day-window-label-live {
+      color: var(--blue);
+    }
+
+    .day-window-label-auto {
+      color: var(--success);
     }
 
     .day-time-input {
@@ -1347,14 +1354,18 @@
 
         const windowLabelEl = document.createElement("span");
         windowLabelEl.className = "day-window-label";
-        windowLabelEl.textContent = "Auto";
+        if (isAutomationPreview) {
+          windowLabelEl.classList.add("day-window-label-auto");
+          windowLabelEl.textContent = "Auto";
+        } else {
+          windowLabelEl.classList.add("day-window-label-live");
+          windowLabelEl.textContent = "Live";
+        }
 
         headEl.appendChild(dayDateEl);
         cardEl.appendChild(headEl);
         cardEl.appendChild(dayTimeEl);
-        if (isAutomationPreview) {
-          cardEl.appendChild(windowLabelEl);
-        }
+        cardEl.appendChild(windowLabelEl);
         dayStripEl.appendChild(cardEl);
 
         if (selectedDate === dateString) {
